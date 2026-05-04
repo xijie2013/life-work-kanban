@@ -140,6 +140,40 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .toast.success{background:#276749;}
 @keyframes fadeIn{from{opacity:0;transform:translate(-50%,8px);}to{opacity:1;transform:translate(-50%,0);}}
 
+/* Reminder strip */
+.reminder-strip{display:none;background:#fff8f0;border-bottom:1px solid #fed7aa;padding:8px 18px;gap:8px;flex-wrap:wrap;align-items:center;}
+.reminder-strip.has-items{display:flex;}
+.reminder-strip-label{font-size:11.5px;font-weight:700;color:#9a3412;letter-spacing:.5px;}
+.reminder-card{background:#fff;border:1px solid var(--border);border-radius:7px;padding:6px 10px;display:inline-flex;align-items:center;gap:6px;font-size:12.5px;cursor:pointer;transition:all .15s;box-shadow:0 1px 2px rgba(0,0,0,.04);}
+.reminder-card:hover{box-shadow:0 2px 6px rgba(0,0,0,.1);transform:translateY(-1px);}
+.reminder-card .cat-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.reminder-card .rem-title{font-weight:600;color:var(--text);}
+.reminder-card .rem-when{color:var(--muted);font-size:11px;}
+.reminder-card.due-today{border-color:#fc8181;background:#fff5f5;}
+.reminder-card.due-today .rem-when{color:#c53030;font-weight:700;}
+.reminder-card.due-tomorrow{border-color:#fbd38d;}
+.reminder-card .rem-dismiss{margin-left:4px;background:none;border:none;cursor:pointer;color:#cbd5e0;font-size:14px;padding:0 2px;line-height:1;font-family:inherit;}
+.reminder-card .rem-dismiss:hover{color:#e53e3e;}
+.cat-work .cat-dot{background:#f6ad55;}
+.cat-life .cat-dot{background:#68d391;}
+.cat-research .cat-dot{background:#63b3ed;}
+.cat-meeting .cat-dot{background:#b794f4;}
+
+/* Reminder list (in management modal) */
+.rem-list{display:flex;flex-direction:column;gap:8px;}
+.rem-item{display:flex;align-items:center;gap:10px;padding:11px 13px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:#fff;transition:all .15s;}
+.rem-item:hover{border-color:var(--primary);background:#f8f9ff;}
+.rem-item .cat-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.rem-item .rem-info{flex:1;min-width:0;}
+.rem-item .rem-info-title{font-weight:600;font-size:13.5px;color:var(--text);}
+.rem-item .rem-info-sub{font-size:11.5px;color:var(--muted);margin-top:3px;}
+.rem-item.expired{opacity:.55;}
+.rem-item-empty{text-align:center;padding:24px 14px;color:#a0aec0;font-size:13px;}
+
+/* Reminder edit modal — conditional fields */
+.rem-cond{display:none;}
+.rem-cond.active{display:block;}
+
 /* === Mobile (< 700px): tab layout === */
 @media (max-width: 699px){
   .header{padding:10px 12px;}
@@ -156,6 +190,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   .col .col-header{display:none;}
   .add-col-btn{margin:8px;}
   .modal{max-width:100%;}
+  .reminder-strip{padding:6px 10px;gap:6px;}
+  .reminder-card{font-size:11.5px;padding:5px 8px;}
 }
 </style>
 </head>
@@ -168,6 +204,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <span class="icon">☁️</span><span id="syncText">未配置</span>
     </button>
     <button class="btn btn-white" onclick="openAdd()" title="添加任务">＋</button>
+    <button class="btn btn-white" onclick="openReminders()" title="提醒事项">📅</button>
     <button class="btn btn-white" onclick="openSettings()" title="云同步设置">⚙</button>
     <button class="btn btn-white" onclick="exportData()" title="导出 JSON 备份">⬇</button>
     <input type="file" id="import-file" accept=".json,application/json" style="display:none" onchange="importData(this)">
@@ -176,6 +213,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div>
 
 <div class="stats-bar" id="statsBar"></div>
+<div class="reminder-strip" id="reminderStrip"></div>
 
 <div class="tab-bar">
   <button class="tab active" data-tab="todo" onclick="setTab('todo')">⬜ 待办 <span id="tab-cnt-todo">0</span></button>
@@ -296,6 +334,115 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 
+<!-- reminder management modal -->
+<div class="overlay hidden" id="reminders-overlay">
+  <div class="modal">
+    <div class="modal-hd">
+      <h3>📅 提醒事项</h3>
+      <button class="x-btn" onclick="closeReminders()">×</button>
+    </div>
+    <div class="modal-bd">
+      <button class="btn btn-save" onclick="openReminderEdit()" style="margin-bottom:14px;width:100%;">＋ 新建提醒</button>
+      <div class="rem-list" id="rem-list"></div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-cancel" onclick="closeReminders()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- reminder edit modal -->
+<div class="overlay hidden" id="rem-edit-overlay">
+  <div class="modal">
+    <div class="modal-hd">
+      <h3 id="rem-edit-ttl">添加提醒</h3>
+      <button class="x-btn" onclick="closeReminderEdit()">×</button>
+    </div>
+    <div class="modal-bd">
+      <div class="fg">
+        <label>标题 *</label>
+        <input type="text" class="fc" id="rf-title" placeholder="例：提交 timesheet">
+      </div>
+      <div class="frow">
+        <div class="fg">
+          <label>分类</label>
+          <select class="fc" id="rf-category">
+            <option value="work">🟡 work</option>
+            <option value="life">🟢 life</option>
+            <option value="research">🔵 research</option>
+            <option value="meeting">🟣 meeting</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>提前几天</label>
+          <input type="number" class="fc" id="rf-advance" min="0" max="30" value="3">
+        </div>
+      </div>
+      <div class="fg">
+        <label>循环类型</label>
+        <select class="fc" id="rf-recurrence" onchange="toggleRecurrenceFields()">
+          <option value="once">一次性（指定日期）</option>
+          <option value="weekly">每周</option>
+          <option value="monthly">每月固定日</option>
+          <option value="monthly_lastday">每月最后一天</option>
+          <option value="yearly">每年</option>
+        </select>
+      </div>
+      <div class="rem-cond" id="rc-once">
+        <div class="fg">
+          <label>日期</label>
+          <input type="date" class="fc" id="rf-date">
+        </div>
+      </div>
+      <div class="rem-cond" id="rc-weekly">
+        <div class="fg">
+          <label>周几</label>
+          <select class="fc" id="rf-dow">
+            <option value="0">周日</option>
+            <option value="1">周一</option>
+            <option value="2">周二</option>
+            <option value="3">周三</option>
+            <option value="4">周四</option>
+            <option value="5">周五</option>
+            <option value="6">周六</option>
+          </select>
+        </div>
+      </div>
+      <div class="rem-cond" id="rc-monthly">
+        <div class="fg">
+          <label>每月第几天 (1-31)</label>
+          <input type="number" class="fc" id="rf-dom" min="1" max="31" value="1">
+        </div>
+      </div>
+      <div class="rem-cond" id="rc-yearly">
+        <div class="frow">
+          <div class="fg">
+            <label>月 (1-12)</label>
+            <input type="number" class="fc" id="rf-yearMonth" min="1" max="12">
+          </div>
+          <div class="fg">
+            <label>日 (1-31)</label>
+            <input type="number" class="fc" id="rf-yearDay" min="1" max="31">
+          </div>
+        </div>
+      </div>
+      <div class="fg">
+        <label>时间（可选）</label>
+        <input type="time" class="fc" id="rf-time">
+      </div>
+      <div class="fg">
+        <label>备注</label>
+        <textarea class="fc" id="rf-note" rows="2" placeholder="可选"></textarea>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-cancel btn-danger" onclick="deleteCurrentReminder()" id="rem-edit-del-btn">删除</button>
+      <button class="btn btn-cancel" onclick="closeReminderEdit()">取消</button>
+      <button class="btn btn-save" onclick="saveReminder()">保存</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast-host"></div>
 
 <script>
@@ -314,7 +461,10 @@ const GIST_FILE = 'kanban-data.json';
 let settings = loadSettings();
 let tasks = [];
 let nextId = 1;
+let reminders = [];
+let nextReminderId = 1;
 let editId = null;
+let editReminderId = null;
 let tmpSubs = [];
 let saveTimer = null;
 let lastSavedAt = null;
@@ -340,6 +490,7 @@ function clearSettings(){
   localStorage.removeItem(CACHE_KEY);
   settings = null;
   tasks = []; nextId = 1;
+  reminders = []; nextReminderId = 1;
   closeSettings();
   render();
   setSync('unconfigured', '未配置');
@@ -374,13 +525,15 @@ function loadCache(){
     if(!data || !Array.isArray(data.tasks)) return false;
     tasks = data.tasks;
     nextId = Number.isFinite(data.nextId) ? data.nextId : (tasks.reduce((m,t)=>Math.max(m,t.id||0),0)+1);
+    reminders = Array.isArray(data.reminders) ? data.reminders : [];
+    nextReminderId = Number.isFinite(data.nextReminderId) ? data.nextReminderId : (reminders.reduce((m,r)=>Math.max(m,r.id||0),0)+1);
     return true;
   }catch(e){ return false; }
 }
 function saveCache(){
   try{
     localStorage.setItem(CACHE_KEY, JSON.stringify({
-      tasks, nextId, cachedAt: new Date().toISOString()
+      tasks, nextId, reminders, nextReminderId, cachedAt: new Date().toISOString()
     }));
   }catch(e){ console.warn('cache save failed', e); }
 }
@@ -403,16 +556,19 @@ async function fetchGist(){
   try{ parsed = JSON.parse(file.content); }
   catch(e){ throw new Error('Gist 内容不是合法 JSON'); }
   if(!parsed || !Array.isArray(parsed.tasks)) throw new Error('Gist JSON 中没有 tasks 数组');
+  const remList = Array.isArray(parsed.reminders) ? parsed.reminders : [];
   return {
     tasks: parsed.tasks,
     nextId: Number.isFinite(parsed.nextId) ? parsed.nextId : (parsed.tasks.reduce((m,t)=>Math.max(m,t.id||0),0)+1),
+    reminders: remList,
+    nextReminderId: Number.isFinite(parsed.nextReminderId) ? parsed.nextReminderId : (remList.reduce((m,r)=>Math.max(m,r.id||0),0)+1),
     updatedAt: data.updated_at
   };
 }
 async function patchGist(){
   if(!settings) throw new Error('未配置 Gist ID / Token');
   const content = JSON.stringify({
-    tasks, nextId, version: 1,
+    tasks, nextId, reminders, nextReminderId, version: 2,
     exportedAt: new Date().toISOString()
   }, null, 2);
   const res = await fetch(gistUrl(), {
@@ -435,6 +591,8 @@ async function reloadFromCloud(){
     const data = await fetchGist();
     tasks = data.tasks;
     nextId = data.nextId;
+    reminders = data.reminders;
+    nextReminderId = data.nextReminderId;
     lastFetchedAt = new Date();
     saveCache();
     setSync('idle', '已同步');
@@ -568,6 +726,7 @@ function render(){
     c.innerHTML = ts.map(t => renderCard(t)).join('');
   });
   renderStats();
+  renderReminderStrip();
 }
 function renderCard(t){
   const p = t.status === 'done' ? 'low' : priority(t.deadline);
@@ -620,6 +779,241 @@ function renderStats(){
     ${urg ? `<div class="stat" style="color:#e53e3e"><div class="dot" style="background:#fc8181"></div>🔴 紧急：<strong>${urg} 项</strong></div>` : ''}
     ${lastSavedAt ? `<div class="saved-tag">💾 已保存 ${lastSavedAt.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}</div>` : ''}
   `;
+}
+
+// ---------- reminder logic ----------
+function lastDayOfMonth(y, m){ return new Date(y, m+1, 0).getDate(); }
+
+// Returns Date of next occurrence on/after `from` (Date with H/M cleared). Null if past for once-type.
+function nextOccurrence(rem, from){
+  const f = new Date(from); f.setHours(0,0,0,0);
+  switch(rem.recurrence){
+    case 'once': {
+      if(!rem.date) return null;
+      const d = new Date(rem.date + 'T00:00:00');
+      return d >= f ? d : null;
+    }
+    case 'weekly': {
+      const dow = parseInt(rem.dayOfWeek, 10);
+      if(isNaN(dow)) return null;
+      const d = new Date(f);
+      const delta = (dow - d.getDay() + 7) % 7;
+      d.setDate(d.getDate() + delta);
+      return d;
+    }
+    case 'monthly': {
+      const dom = parseInt(rem.dayOfMonth, 10);
+      if(isNaN(dom)) return null;
+      let y = f.getFullYear(), m = f.getMonth();
+      let day = Math.min(dom, lastDayOfMonth(y, m));
+      let d = new Date(y, m, day);
+      if(d < f){ m++; if(m>11){ m=0; y++; } day = Math.min(dom, lastDayOfMonth(y, m)); d = new Date(y, m, day); }
+      return d;
+    }
+    case 'monthly_lastday': {
+      let y = f.getFullYear(), m = f.getMonth();
+      let d = new Date(y, m, lastDayOfMonth(y, m));
+      if(d < f){ m++; if(m>11){ m=0; y++; } d = new Date(y, m, lastDayOfMonth(y, m)); }
+      return d;
+    }
+    case 'yearly': {
+      const mo = parseInt(rem.month, 10) - 1;
+      const da = parseInt(rem.dayOfMonth, 10);
+      if(isNaN(mo) || isNaN(da)) return null;
+      let y = f.getFullYear();
+      let d = new Date(y, mo, Math.min(da, lastDayOfMonth(y, mo)));
+      if(d < f){ y++; d = new Date(y, mo, Math.min(da, lastDayOfMonth(y, mo))); }
+      return d;
+    }
+  }
+  return null;
+}
+function daysUntilDate(date, from){
+  const f = new Date(from); f.setHours(0,0,0,0);
+  const d = new Date(date); d.setHours(0,0,0,0);
+  return Math.round((d - f) / 864e5);
+}
+function fmtWhen(date, days){
+  if(days < 0) return `已过 ${-days}天`;
+  if(days === 0) return '今天';
+  if(days === 1) return '明天';
+  if(days === 2) return '后天';
+  if(days <= 6) return `${days}天后`;
+  return `${date.getMonth()+1}/${date.getDate()}`;
+}
+function isReminderDismissed(rem, today){
+  if(!rem.dismissedUntil) return false;
+  try{
+    const di = new Date(rem.dismissedUntil + 'T00:00:00');
+    return di > today;
+  }catch(e){ return false; }
+}
+function recurrenceSummary(rem){
+  switch(rem.recurrence){
+    case 'once': return '一次性 · ' + (rem.date || '?');
+    case 'weekly': return '每周' + ['日','一','二','三','四','五','六'][rem.dayOfWeek];
+    case 'monthly': return `每月 ${rem.dayOfMonth} 号`;
+    case 'monthly_lastday': return '每月最后一天';
+    case 'yearly': return `每年 ${rem.month}/${rem.dayOfMonth}`;
+  }
+  return '?';
+}
+function renderReminderStrip(){
+  const strip = document.getElementById('reminderStrip');
+  if(!strip) return;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const due = [];
+  reminders.forEach(rem => {
+    const next = nextOccurrence(rem, today);
+    if(!next) return;
+    const days = daysUntilDate(next, today);
+    if(days < 0) return;
+    const advance = Number.isFinite(rem.advanceDays) ? rem.advanceDays : 3;
+    if(days > advance) return;
+    if(isReminderDismissed(rem, today)) return;
+    due.push({rem, next, days});
+  });
+  due.sort((a,b) => a.days - b.days);
+  if(!due.length){ strip.classList.remove('has-items'); strip.innerHTML=''; return; }
+  strip.classList.add('has-items');
+  const cards = due.map(({rem, next, days}) => {
+    const cat = rem.category || 'life';
+    const dueClass = days === 0 ? 'due-today' : (days === 1 ? 'due-tomorrow' : '');
+    const when = fmtWhen(next, days) + (rem.time ? ' · ' + rem.time : '');
+    return `<div class="reminder-card cat-${cat} ${dueClass}" onclick="openReminderEdit(${rem.id})" title="${escapeHtml(rem.note || '')}">
+      <span class="cat-dot"></span>
+      <span class="rem-title">${escapeHtml(rem.title)}</span>
+      <span class="rem-when">${when}</span>
+      <button class="rem-dismiss" onclick="dismissReminder(${rem.id});event.stopPropagation()" title="本次知道了">✕</button>
+    </div>`;
+  }).join('');
+  strip.innerHTML = `<span class="reminder-strip-label">📅 即将到来</span>` + cards;
+}
+function openReminders(){
+  renderReminderList();
+  document.getElementById('reminders-overlay').classList.remove('hidden');
+}
+function closeReminders(){ document.getElementById('reminders-overlay').classList.add('hidden'); }
+function renderReminderList(){
+  const list = document.getElementById('rem-list');
+  if(!reminders.length){
+    list.innerHTML = '<div class="rem-item-empty">还没有提醒。点上面的「+ 新建提醒」开始添加。</div>';
+    return;
+  }
+  const today = new Date(); today.setHours(0,0,0,0);
+  const sorted = reminders.map(r => ({rem:r, next: nextOccurrence(r, today)}))
+    .sort((a,b) => {
+      if(!a.next && !b.next) return 0;
+      if(!a.next) return 1; if(!b.next) return -1;
+      return a.next - b.next;
+    });
+  list.innerHTML = sorted.map(({rem, next}) => {
+    const cat = rem.category || 'life';
+    const expired = rem.recurrence === 'once' && !next;
+    const nextStr = next ? `下次 ${next.getMonth()+1}/${next.getDate()}` : '已过期';
+    const meta = [recurrenceSummary(rem), nextStr];
+    if(rem.time) meta.push(rem.time);
+    if(rem.advanceDays) meta.push(`提前 ${rem.advanceDays}天`);
+    return `<div class="rem-item cat-${cat}${expired?' expired':''}" onclick="openReminderEdit(${rem.id})">
+      <span class="cat-dot"></span>
+      <div class="rem-info">
+        <div class="rem-info-title">${escapeHtml(rem.title)}</div>
+        <div class="rem-info-sub">${meta.join(' · ')}${rem.note?' · '+escapeHtml(rem.note):''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function openReminderEdit(id){
+  editReminderId = id || null;
+  const rem = id ? reminders.find(r => r.id === id) : null;
+  document.getElementById('rem-edit-ttl').textContent = rem ? '编辑提醒' : '添加提醒';
+  document.getElementById('rem-edit-del-btn').style.display = rem ? '' : 'none';
+  document.getElementById('rf-title').value = rem ? rem.title : '';
+  document.getElementById('rf-category').value = rem ? (rem.category || 'life') : 'work';
+  document.getElementById('rf-advance').value = rem ? (rem.advanceDays != null ? rem.advanceDays : 3) : 3;
+  document.getElementById('rf-recurrence').value = rem ? rem.recurrence : 'once';
+  document.getElementById('rf-date').value = rem && rem.date ? rem.date : '';
+  document.getElementById('rf-dow').value = rem && rem.dayOfWeek != null ? rem.dayOfWeek : 1;
+  document.getElementById('rf-dom').value = rem && rem.recurrence === 'monthly' && rem.dayOfMonth ? rem.dayOfMonth : 1;
+  document.getElementById('rf-yearMonth').value = rem && rem.recurrence === 'yearly' && rem.month ? rem.month : '';
+  document.getElementById('rf-yearDay').value = rem && rem.recurrence === 'yearly' && rem.dayOfMonth ? rem.dayOfMonth : '';
+  document.getElementById('rf-time').value = rem && rem.time ? rem.time : '';
+  document.getElementById('rf-note').value = rem && rem.note ? rem.note : '';
+  toggleRecurrenceFields();
+  document.getElementById('rem-edit-overlay').classList.remove('hidden');
+  setTimeout(() => document.getElementById('rf-title').focus(), 50);
+}
+function closeReminderEdit(){
+  document.getElementById('rem-edit-overlay').classList.add('hidden');
+  editReminderId = null;
+}
+function toggleRecurrenceFields(){
+  const v = document.getElementById('rf-recurrence').value;
+  ['rc-once','rc-weekly','rc-monthly','rc-yearly'].forEach(id => {
+    document.getElementById(id).classList.remove('active');
+  });
+  if(v === 'once') document.getElementById('rc-once').classList.add('active');
+  else if(v === 'weekly') document.getElementById('rc-weekly').classList.add('active');
+  else if(v === 'monthly') document.getElementById('rc-monthly').classList.add('active');
+  else if(v === 'yearly') document.getElementById('rc-yearly').classList.add('active');
+}
+function saveReminder(){
+  const title = document.getElementById('rf-title').value.trim();
+  if(!title){ alert('请输入标题'); return; }
+  const recurrence = document.getElementById('rf-recurrence').value;
+  const r = {
+    title,
+    category: document.getElementById('rf-category').value,
+    advanceDays: parseInt(document.getElementById('rf-advance').value, 10) || 0,
+    recurrence,
+    time: document.getElementById('rf-time').value || null,
+    note: document.getElementById('rf-note').value.trim()
+  };
+  if(recurrence === 'once'){
+    r.date = document.getElementById('rf-date').value;
+    if(!r.date){ alert('一次性提醒需要选择日期'); return; }
+  } else if(recurrence === 'weekly'){
+    r.dayOfWeek = parseInt(document.getElementById('rf-dow').value, 10);
+  } else if(recurrence === 'monthly'){
+    r.dayOfMonth = parseInt(document.getElementById('rf-dom').value, 10);
+    if(!r.dayOfMonth || r.dayOfMonth < 1 || r.dayOfMonth > 31){ alert('请输入 1-31 的日期'); return; }
+  } else if(recurrence === 'yearly'){
+    r.month = parseInt(document.getElementById('rf-yearMonth').value, 10);
+    r.dayOfMonth = parseInt(document.getElementById('rf-yearDay').value, 10);
+    if(!r.month || !r.dayOfMonth){ alert('请输入月和日'); return; }
+  }
+  if(editReminderId){
+    const i = reminders.findIndex(x => x.id === editReminderId);
+    if(i >= 0) reminders[i] = {...reminders[i], ...r};
+  } else {
+    reminders.push({id: nextReminderId++, ...r});
+  }
+  closeReminderEdit();
+  renderReminderList();
+  persist();
+}
+function deleteCurrentReminder(){
+  if(!editReminderId) return;
+  if(!confirm('删除此提醒？')) return;
+  reminders = reminders.filter(r => r.id !== editReminderId);
+  closeReminderEdit();
+  renderReminderList();
+  persist();
+}
+function dismissReminder(id){
+  const rem = reminders.find(r => r.id === id);
+  if(!rem) return;
+  const today = new Date(); today.setHours(0,0,0,0);
+  if(rem.recurrence === 'once'){
+    rem.dismissedUntil = '9999-12-31';
+  } else {
+    const next = nextOccurrence(rem, today);
+    if(next){
+      const skip = new Date(next.getTime() + 86400000);
+      rem.dismissedUntil = skip.toISOString().slice(0,10);
+    }
+  }
+  persist();
 }
 
 // ---------- task ops ----------
@@ -748,6 +1142,12 @@ document.getElementById('overlay').addEventListener('click', e => {
 });
 document.getElementById('settings-overlay').addEventListener('click', e => {
   if(e.target === document.getElementById('settings-overlay')) closeSettings();
+});
+document.getElementById('reminders-overlay').addEventListener('click', e => {
+  if(e.target === document.getElementById('reminders-overlay')) closeReminders();
+});
+document.getElementById('rem-edit-overlay').addEventListener('click', e => {
+  if(e.target === document.getElementById('rem-edit-overlay')) closeReminderEdit();
 });
 window.addEventListener('beforeunload', () => {
   if(saveTimer && settings) flushSaveImmediately();
