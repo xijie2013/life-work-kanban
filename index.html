@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#667eea">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" type="image/svg+xml" href="./icon.svg">
+<link rel="apple-touch-icon" href="./icon.svg">
+<title>生活工作助手</title>
+<style>
+:root { color-scheme: light; --bg:#f5f7fa; --card-bg:#fff; --border:#e2e8f0; --text:#1a202c; --muted:#718096; --primary:#667eea; }
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* Header */
+.header{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.15);gap:10px;flex-wrap:wrap;}
+.header h1{font-size:17px;font-weight:700;display:flex;align-items:center;gap:8px;}
+.btn{padding:7px 15px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all .2s;font-family:inherit;}
+.btn-white{background:#fff;color:var(--primary);}
+.btn-white:hover{background:#f0f0ff;transform:translateY(-1px);}
+.hdr-toolbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+.hdr-toolbar .btn{padding:7px 11px;font-size:12.5px;}
+
+/* Sync chip */
+.sync-chip{font-size:12px;padding:5px 11px;border-radius:14px;background:rgba(255,255,255,.18);color:#fff;display:inline-flex;align-items:center;gap:5px;cursor:pointer;border:none;font-weight:600;font-family:inherit;}
+.sync-chip:hover{background:rgba(255,255,255,.3);}
+.sync-chip.error{background:rgba(252,129,129,.45);}
+.sync-chip .icon{display:inline-block;}
+.sync-chip.spin .icon{animation:spin 1s linear infinite;}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+/* Stats bar */
+.stats-bar{background:#fff;padding:9px 18px;display:flex;gap:18px;border-bottom:1px solid var(--border);font-size:13px;flex-wrap:wrap;align-items:center;}
+.stat{display:flex;align-items:center;gap:5px;color:var(--muted);}
+.stat strong{color:var(--text);}
+.dot{width:9px;height:9px;border-radius:50%;}
+.saved-tag{margin-left:auto;font-size:11.5px;color:#a0aec0;}
+
+/* Tab bar — mobile only */
+.tab-bar{display:none;background:#fff;border-bottom:1px solid var(--border);}
+.tab{flex:1;padding:11px 6px;font-size:13px;font-weight:700;background:none;border:none;cursor:pointer;color:var(--muted);border-bottom:3px solid transparent;font-family:inherit;}
+.tab.active{color:var(--primary);border-bottom-color:var(--primary);background:#f8f9ff;}
+
+/* Board */
+.board{display:flex;gap:14px;padding:14px;overflow-x:auto;align-items:flex-start;min-height:calc(100vh - 110px);}
+.col{background:#edf2f7;border-radius:12px;min-width:290px;flex:1;max-width:370px;display:flex;flex-direction:column;}
+.col-header{padding:11px 15px;font-weight:700;font-size:14px;display:flex;align-items:center;gap:7px;border-bottom:2px solid transparent;}
+.col-todo .col-header{color:#4a5568;border-color:#a0aec0;}
+.col-inprogress .col-header{color:#2b6cb0;border-color:#63b3ed;}
+.col-done .col-header{color:#276749;border-color:#68d391;}
+.col-count{background:rgba(0,0,0,.1);border-radius:10px;padding:1px 7px;font-size:12px;}
+.col-cards{padding:8px;display:flex;flex-direction:column;gap:7px;min-height:80px;flex:1;}
+.add-col-btn{margin:0 8px 8px;padding:7px;border:2px dashed #cbd5e0;border-radius:8px;background:transparent;color:var(--muted);cursor:pointer;font-size:12px;text-align:center;transition:all .2s;font-family:inherit;}
+.add-col-btn:hover{border-color:var(--primary);color:var(--primary);background:#f0f0ff;}
+
+/* Card */
+.card{background:#fff;border-radius:9px;padding:11px;box-shadow:0 1px 4px rgba(0,0,0,.07);border-left:4px solid transparent;cursor:pointer;transition:all .2s;}
+.card:hover{box-shadow:0 4px 12px rgba(0,0,0,.11);transform:translateY(-1px);}
+.card.p-urgent{border-left-color:#fc8181;background:#fff8f8;}
+.card.p-high{border-left-color:#f6ad55;}
+.card.p-medium{border-left-color:#68d391;}
+.card.p-low{border-left-color:#76e4f7;}
+.card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:7px;}
+.card-title{font-weight:600;font-size:13.5px;flex:1;}
+.pbadge{padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap;flex-shrink:0;}
+.pb-urgent{background:#fed7d7;color:#c53030;}
+.pb-high{background:#feebc8;color:#c05621;}
+.pb-medium{background:#c6f6d5;color:#276749;}
+.pb-low{background:#bee3f8;color:#2c5282;}
+.card-meta{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px;}
+.proj-tag{padding:2px 7px;border-radius:10px;font-size:11px;font-weight:600;}
+.proj-np{background:#fef3c7;color:#92400e;}
+.proj-zf{background:#e0f2fe;color:#075985;}
+.proj-lh{background:#fce7f3;color:#9d174d;}
+.proj-seminar{background:#ede9fe;color:#5b21b6;}
+.proj-life{background:#dcfce7;color:#166534;}
+.proj-default{background:#e9d8fd;color:#6b46c1;}
+.dl-tag{font-size:11px;color:var(--muted);}
+.dl-overdue{color:#e53e3e;font-weight:700;}
+.dl-soon{color:#dd6b20;font-weight:600;}
+.secondary-badge{font-size:10px;color:#a0aec0;background:#f7fafc;border:1px solid #e2e8f0;padding:1px 6px;border-radius:8px;white-space:nowrap;}
+.card-note{font-size:11.5px;color:var(--muted);font-style:italic;margin-bottom:5px;}
+.subtasks{margin-top:7px;border-top:1px solid var(--border);padding-top:7px;}
+.sub-prog{display:flex;align-items:center;gap:7px;margin-bottom:5px;}
+.prog-bar{flex:1;height:4px;background:#e2e8f0;border-radius:2px;overflow:hidden;}
+.prog-fill{height:100%;background:linear-gradient(90deg,#667eea,#764ba2);border-radius:2px;transition:width .3s;}
+.sub-item{display:flex;align-items:center;gap:5px;padding:2px 0;font-size:12px;color:var(--muted);}
+.sub-item input{cursor:pointer;width:13px;height:13px;accent-color:var(--primary);}
+.sub-item.done span{text-decoration:line-through;color:#a0aec0;}
+.card-actions{display:flex;gap:4px;margin-top:7px;padding-top:7px;border-top:1px solid var(--border);flex-wrap:wrap;}
+.act-btn{padding:3px 8px;border-radius:5px;border:1px solid var(--border);background:#fff;font-size:11px;cursor:pointer;color:var(--muted);transition:all .15s;font-family:inherit;}
+.act-btn:hover{background:var(--bg);color:var(--text);}
+.act-btn.del:hover{background:#fff5f5;color:#e53e3e;border-color:#fc8181;}
+.empty{text-align:center;padding:28px 14px;color:#a0aec0;font-size:13px;}
+.empty-icon{font-size:26px;margin-bottom:7px;}
+
+/* Modal */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:1000;padding:14px;}
+.modal{background:#fff;border-radius:14px;width:100%;max-width:460px;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+.modal-hd{padding:15px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-hd h3{font-size:15px;font-weight:700;}
+.x-btn{background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted);padding:0 3px;line-height:1;}
+.modal-bd{padding:18px;}
+.fg{margin-bottom:14px;}
+.fg label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;}
+.fc{width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;font-size:13.5px;color:var(--text);transition:border-color .2s;font-family:inherit;}
+.fc:focus{outline:none;border-color:var(--primary);}
+.frow{display:flex;gap:10px;}
+.frow .fg{flex:1;}
+.field-help{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.55;}
+.field-help code{background:#f7fafc;padding:1px 4px;border-radius:3px;font-size:11px;}
+.intro-note{font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6;background:#f7fafc;padding:10px 12px;border-radius:7px;border-left:3px solid var(--primary);}
+.sub-editor{border:1.5px solid var(--border);border-radius:7px;overflow:hidden;}
+.sub-edit-list{padding:7px;display:flex;flex-direction:column;gap:4px;}
+.sei{display:flex;align-items:center;gap:5px;padding:3px 5px;border-radius:5px;background:var(--bg);}
+.sei input[type=text]{flex:1;border:none;background:transparent;font-size:12.5px;color:var(--text);}
+.sei input[type=text]:focus{outline:none;}
+.sei-rm{color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:0 2px;border:none;background:none;}
+.sei-rm:hover{color:#e53e3e;}
+.sub-add-row{padding:7px;border-top:1px solid var(--border);display:flex;gap:5px;align-items:center;}
+.sub-add-row input{flex:1;border:none;font-size:12.5px;color:var(--text);padding:3px 5px;}
+.sub-add-row input::placeholder{color:#a0aec0;}
+.sub-add-row input:focus{outline:none;}
+.modal-ft{padding:14px 18px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;}
+.btn-cancel{background:var(--bg);color:var(--muted);border:1.5px solid var(--border);}
+.btn-cancel:hover{background:#e2e8f0;}
+.btn-save{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;}
+.btn-save:hover{opacity:.9;transform:translateY(-1px);}
+.btn-danger{color:#c53030;border-color:#fc8181;background:#fff5f5;margin-right:auto;}
+.btn-danger:hover{background:#fed7d7;}
+
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
+.card.p-urgent .pbadge{animation:pulse 1.8s infinite;}
+.hidden{display:none!important;}
+
+/* Toast */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a202c;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;z-index:2000;box-shadow:0 4px 16px rgba(0,0,0,.3);max-width:90%;white-space:pre-wrap;animation:fadeIn .2s;}
+.toast.error{background:#c53030;}
+.toast.success{background:#276749;}
+@keyframes fadeIn{from{opacity:0;transform:translate(-50%,8px);}to{opacity:1;transform:translate(-50%,0);}}
+
+/* === Mobile (< 700px): tab layout === */
+@media (max-width: 699px){
+  .header{padding:10px 12px;}
+  .header h1{font-size:15px;}
+  .hdr-toolbar .btn{padding:5px 9px;font-size:11.5px;}
+  .stats-bar{padding:7px 12px;font-size:11.5px;gap:10px;}
+  .saved-tag{display:none;}
+  .tab-bar{display:flex;}
+  .board{flex-direction:column;padding:8px;gap:0;min-height:auto;}
+  .col{display:none;max-width:none;min-width:0;width:100%;background:transparent;}
+  body[data-tab="todo"] .col-todo{display:flex;}
+  body[data-tab="inprogress"] .col-inprogress{display:flex;}
+  body[data-tab="done"] .col-done{display:flex;}
+  .col .col-header{display:none;}
+  .add-col-btn{margin:8px;}
+  .modal{max-width:100%;}
+}
+</style>
+</head>
+<body data-tab="todo">
+
+<div class="header">
+  <h1>📋 生活工作助手</h1>
+  <div class="hdr-toolbar">
+    <button class="sync-chip" id="syncChip" onclick="onSyncChipClick()" title="同步状态（点击重新加载）">
+      <span class="icon">☁️</span><span id="syncText">未配置</span>
+    </button>
+    <button class="btn btn-white" onclick="openAdd()" title="添加任务">＋</button>
+    <button class="btn btn-white" onclick="openSettings()" title="云同步设置">⚙</button>
+    <button class="btn btn-white" onclick="exportData()" title="导出 JSON 备份">⬇</button>
+    <input type="file" id="import-file" accept=".json,application/json" style="display:none" onchange="importData(this)">
+    <button class="btn btn-white" onclick="document.getElementById('import-file').click()" title="从 JSON 文件导入并覆盖云端">⬆</button>
+  </div>
+</div>
+
+<div class="stats-bar" id="statsBar"></div>
+
+<div class="tab-bar">
+  <button class="tab active" data-tab="todo" onclick="setTab('todo')">⬜ 待办 <span id="tab-cnt-todo">0</span></button>
+  <button class="tab" data-tab="inprogress" onclick="setTab('inprogress')">🔵 进行中 <span id="tab-cnt-inprogress">0</span></button>
+  <button class="tab" data-tab="done" onclick="setTab('done')">✅ 已完成 <span id="tab-cnt-done">0</span></button>
+</div>
+
+<div class="board">
+  <div class="col col-todo">
+    <div class="col-header">⬜ 待办 <span class="col-count" id="cnt-todo">0</span></div>
+    <div class="col-cards" id="cards-todo"></div>
+    <button class="add-col-btn" onclick="openAdd('todo')">＋ 添加</button>
+  </div>
+  <div class="col col-inprogress">
+    <div class="col-header">🔵 进行中 <span class="col-count" id="cnt-inprogress">0</span></div>
+    <div class="col-cards" id="cards-inprogress"></div>
+    <button class="add-col-btn" onclick="openAdd('inprogress')">＋ 添加</button>
+  </div>
+  <div class="col col-done">
+    <div class="col-header">✅ 已完成 <span class="col-count" id="cnt-done">0</span></div>
+    <div class="col-cards" id="cards-done"></div>
+    <button class="add-col-btn" onclick="openAdd('done')">＋ 添加</button>
+  </div>
+</div>
+
+<!-- task add/edit modal -->
+<div class="overlay hidden" id="overlay">
+  <div class="modal">
+    <div class="modal-hd">
+      <h3 id="modal-ttl">添加任务</h3>
+      <button class="x-btn" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-bd">
+      <div class="fg">
+        <label>任务标题 *</label>
+        <input type="text" class="fc" id="f-title" placeholder="输入任务名称…">
+      </div>
+      <div class="frow">
+        <div class="fg">
+          <label>所属项目</label>
+          <input type="text" class="fc" id="f-project" placeholder="如：ZF Study、生活…">
+        </div>
+        <div class="fg">
+          <label>状态</label>
+          <select class="fc" id="f-status">
+            <option value="todo">待办</option>
+            <option value="inprogress">进行中</option>
+            <option value="done">已完成</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg">
+        <label>截止日期</label>
+        <input type="date" class="fc" id="f-deadline">
+      </div>
+      <div class="fg">
+        <label>备注</label>
+        <textarea class="fc" id="f-note" rows="2" placeholder="可选备注…"></textarea>
+      </div>
+      <div class="fg">
+        <label>子任务</label>
+        <div class="sub-editor">
+          <div class="sub-edit-list" id="sub-edit-list"></div>
+          <div class="sub-add-row">
+            <input type="text" id="new-sub-inp" placeholder="输入子任务，按 Enter 添加…">
+            <button class="act-btn" onclick="addSubFromInput()">添加</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-cancel" onclick="closeModal()">取消</button>
+      <button class="btn btn-save" onclick="saveTask()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- settings modal -->
+<div class="overlay hidden" id="settings-overlay">
+  <div class="modal">
+    <div class="modal-hd">
+      <h3>☁ 云同步设置</h3>
+      <button class="x-btn" onclick="closeSettings()">×</button>
+    </div>
+    <div class="modal-bd">
+      <div class="intro-note">
+        看板数据存在 GitHub Gist 上，跨设备自动同步。<br>
+        配置只需做一次，凭据仅存在本机浏览器（不会发送到任何第三方）。
+      </div>
+      <div class="fg">
+        <label>Gist ID</label>
+        <input type="text" class="fc" id="cfg-gist-id" placeholder="32 位十六进制字符串" autocomplete="off" spellcheck="false">
+        <div class="field-help">
+          gist.github.com 上你创建的 secret gist 的 URL 末尾那串。
+        </div>
+      </div>
+      <div class="fg">
+        <label>Personal Access Token</label>
+        <input type="password" class="fc" id="cfg-token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off" spellcheck="false">
+        <div class="field-help">
+          GitHub → Settings → Developer settings → Personal access tokens → <b>classic</b> → Generate new token，scope 只勾 <code>gist</code>。
+        </div>
+      </div>
+      <details>
+        <summary style="cursor:pointer;font-size:12px;color:var(--muted);padding:4px 0;">高级 / 故障排查</summary>
+        <div style="margin-top:6px;font-size:11.5px;color:var(--muted);line-height:1.7;">
+          <p>• Token 失效或泄漏时，去 GitHub 撤销 + 生成新的，再回来更新这里。</p>
+          <p>• 数据全部存在 Gist 上；浏览器 localStorage 只存：① 这两个凭据 ② 一份本地缓存（用于离线快速渲染）。</p>
+          <p>• 若本机出现奇怪状态，可点下方 <b>清除并重置</b> 重新开始（不会删云端数据）。</p>
+        </div>
+      </details>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-cancel btn-danger" onclick="clearSettings()">清除并重置</button>
+      <button class="btn btn-cancel" onclick="closeSettings()">取消</button>
+      <button class="btn btn-save" onclick="saveSettings()">保存并连接</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-host"></div>
+
+<script>
+// ===========================================================
+//  生活工作助手 — Cloud-synced
+//  Frontend: GitHub Pages, Backend: GitHub Gist (REST API)
+// ===========================================================
+
+const SETTINGS_KEY = 'kanban-sync-settings-v1';
+const CACHE_KEY    = 'kanban-cache-v2';
+const TAB_KEY      = 'kanban-mobile-tab-v1';
+const SAVE_DEBOUNCE_MS = 1500;
+const GIST_FILE = 'kanban-data.json';
+
+// ---------- state ----------
+let settings = loadSettings();
+let tasks = [];
+let nextId = 1;
+let editId = null;
+let tmpSubs = [];
+let saveTimer = null;
+let lastSavedAt = null;
+let lastFetchedAt = null;
+
+// ---------- settings ----------
+function loadSettings(){
+  try{
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if(!raw) return null;
+    const data = JSON.parse(raw);
+    if(!data || !data.gistId || !data.token) return null;
+    return data;
+  }catch(e){ return null; }
+}
+function persistSettings(s){
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+  settings = s;
+}
+function clearSettings(){
+  if(!confirm('确定要清除本地保存的 Gist ID 和 Token 吗？\n\n云端数据不会被删除——只是这台设备需要重新配置才能访问。')) return;
+  localStorage.removeItem(SETTINGS_KEY);
+  localStorage.removeItem(CACHE_KEY);
+  settings = null;
+  tasks = []; nextId = 1;
+  closeSettings();
+  render();
+  setSync('unconfigured', '未配置');
+  openSettings();
+}
+function openSettings(){
+  document.getElementById('cfg-gist-id').value = settings ? settings.gistId : '';
+  document.getElementById('cfg-token').value = settings ? settings.token : '';
+  document.getElementById('settings-overlay').classList.remove('hidden');
+}
+function closeSettings(){
+  document.getElementById('settings-overlay').classList.add('hidden');
+}
+async function saveSettings(){
+  const gistId = document.getElementById('cfg-gist-id').value.trim();
+  const token = document.getElementById('cfg-token').value.trim();
+  if(!gistId || !token){ alert('Gist ID 和 Token 都不能为空。'); return; }
+  if(!/^[a-f0-9]{16,40}$/i.test(gistId)){
+    if(!confirm('Gist ID 看起来格式不对（通常是 32 位十六进制）。继续？')) return;
+  }
+  persistSettings({gistId, token});
+  closeSettings();
+  await reloadFromCloud();
+}
+
+// ---------- local cache ----------
+function loadCache(){
+  try{
+    const raw = localStorage.getItem(CACHE_KEY);
+    if(!raw) return false;
+    const data = JSON.parse(raw);
+    if(!data || !Array.isArray(data.tasks)) return false;
+    tasks = data.tasks;
+    nextId = Number.isFinite(data.nextId) ? data.nextId : (tasks.reduce((m,t)=>Math.max(m,t.id||0),0)+1);
+    return true;
+  }catch(e){ return false; }
+}
+function saveCache(){
+  try{
+    localStorage.setItem(CACHE_KEY, JSON.stringify({
+      tasks, nextId, cachedAt: new Date().toISOString()
+    }));
+  }catch(e){ console.warn('cache save failed', e); }
+}
+
+// ---------- gist API ----------
+function gistUrl(){ return `https://api.github.com/gists/${settings.gistId}`; }
+function authHeaders(){ return {'Authorization': `token ${settings.token}`, 'Accept': 'application/vnd.github+json'}; }
+
+async function fetchGist(){
+  if(!settings) throw new Error('未配置 Gist ID / Token');
+  const res = await fetch(gistUrl(), {headers: authHeaders(), cache: 'no-store'});
+  if(!res.ok){
+    const txt = await res.text().catch(()=>'');
+    throw new Error(`GET 失败 (HTTP ${res.status})${txt ? ': ' + txt.slice(0,160) : ''}`);
+  }
+  const data = await res.json();
+  const file = data.files && data.files[GIST_FILE];
+  if(!file) throw new Error(`Gist 中找不到文件 ${GIST_FILE}`);
+  let parsed;
+  try{ parsed = JSON.parse(file.content); }
+  catch(e){ throw new Error('Gist 内容不是合法 JSON'); }
+  if(!parsed || !Array.isArray(parsed.tasks)) throw new Error('Gist JSON 中没有 tasks 数组');
+  return {
+    tasks: parsed.tasks,
+    nextId: Number.isFinite(parsed.nextId) ? parsed.nextId : (parsed.tasks.reduce((m,t)=>Math.max(m,t.id||0),0)+1),
+    updatedAt: data.updated_at
+  };
+}
+async function patchGist(){
+  if(!settings) throw new Error('未配置 Gist ID / Token');
+  const content = JSON.stringify({
+    tasks, nextId, version: 1,
+    exportedAt: new Date().toISOString()
+  }, null, 2);
+  const res = await fetch(gistUrl(), {
+    method: 'PATCH',
+    headers: {...authHeaders(), 'Content-Type': 'application/json'},
+    body: JSON.stringify({files: {[GIST_FILE]: {content}}})
+  });
+  if(!res.ok){
+    const txt = await res.text().catch(()=>'');
+    throw new Error(`PATCH 失败 (HTTP ${res.status})${txt ? ': ' + txt.slice(0,160) : ''}`);
+  }
+  lastSavedAt = new Date();
+}
+
+// ---------- sync orchestration ----------
+async function reloadFromCloud(){
+  if(!settings){ setSync('unconfigured', '未配置'); render(); return; }
+  setSync('loading', '加载中…');
+  try{
+    const data = await fetchGist();
+    tasks = data.tasks;
+    nextId = data.nextId;
+    lastFetchedAt = new Date();
+    saveCache();
+    setSync('idle', '已同步');
+    render();
+  }catch(e){
+    console.error(e);
+    setSync('error', '加载失败');
+    toast('加载失败：' + e.message, 'error');
+    if(!tasks.length && loadCache()) render();
+  }
+}
+function scheduleSave(){
+  if(!settings) return;
+  if(saveTimer) clearTimeout(saveTimer);
+  setSync('pending', '待同步');
+  saveTimer = setTimeout(actuallySave, SAVE_DEBOUNCE_MS);
+}
+async function actuallySave(){
+  if(!settings) return;
+  setSync('saving', '保存中…');
+  try{
+    await patchGist();
+    setSync('idle', '已同步');
+  }catch(e){
+    console.error(e);
+    setSync('error', '保存失败');
+    toast('保存失败：' + e.message + '\n\n本地变更已缓存，下次保存时会一并提交。', 'error');
+  }
+}
+function flushSaveImmediately(){
+  if(saveTimer){ clearTimeout(saveTimer); saveTimer = null; }
+  return actuallySave();
+}
+function persist(){
+  saveCache();
+  render();
+  scheduleSave();
+}
+
+// ---------- sync chip ----------
+function setSync(state, text){
+  const chip = document.getElementById('syncChip');
+  document.getElementById('syncText').textContent = text;
+  chip.classList.remove('error','spin');
+  const icon = chip.querySelector('.icon');
+  if(state === 'idle')        { icon.textContent = '☁️'; }
+  else if(state === 'loading'){ icon.textContent = '⏳'; chip.classList.add('spin'); }
+  else if(state === 'saving') { icon.textContent = '⏳'; chip.classList.add('spin'); }
+  else if(state === 'pending'){ icon.textContent = '✏️'; }
+  else if(state === 'error')  { icon.textContent = '⚠'; chip.classList.add('error'); }
+  else if(state === 'unconfigured'){ icon.textContent = '⚙'; }
+  chip.dataset.state = state;
+}
+function onSyncChipClick(){
+  const state = document.getElementById('syncChip').dataset.state;
+  if(state === 'unconfigured'){ openSettings(); return; }
+  if(state === 'saving' || state === 'pending'){ flushSaveImmediately(); return; }
+  reloadFromCloud();
+}
+
+// ---------- toast ----------
+function toast(msg, type){
+  const t = document.createElement('div');
+  t.className = 'toast' + (type ? ' ' + type : '');
+  t.textContent = msg;
+  document.getElementById('toast-host').appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+// ---------- tab (mobile) ----------
+function setTab(name){
+  document.body.dataset.tab = name;
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  try{ localStorage.setItem(TAB_KEY, name); }catch(e){}
+}
+
+// ---------- domain logic ----------
+function autoPromote(){
+  const today = new Date(new Date().toDateString());
+  let changed = false;
+  tasks.forEach(t => {
+    if(t.status === 'todo' && t.deadline){
+      if(new Date(t.deadline) <= today){ t.status = 'inprogress'; changed = true; }
+    }
+  });
+  return changed;
+}
+function priority(dl){
+  if(!dl) return 'low';
+  const d = Math.ceil((new Date(dl) - new Date(new Date().toDateString())) / 864e5);
+  if(d < 0 || d <= 2) return 'urgent';
+  if(d <= 7) return 'high';
+  if(d <= 14) return 'medium';
+  return 'low';
+}
+function pLabel(p){ return {urgent:'🔴 紧急',high:'🟠 较高',medium:'🟢 一般',low:'🔵 较低'}[p]; }
+function pOrder(p){ return {urgent:0,high:1,medium:2,low:3}[p]; }
+function dlInfo(dl){
+  if(!dl) return null;
+  const d = Math.ceil((new Date(dl) - new Date(new Date().toDateString())) / 864e5);
+  if(d < 0) return {txt:`⚠ 已逾期${-d}天`, cls:'dl-overdue'};
+  if(d === 0) return {txt:'⚡ 今天截止', cls:'dl-soon'};
+  if(d === 1) return {txt:'⚡ 明天截止', cls:'dl-soon'};
+  return {txt:'📅 ' + dl, cls:''};
+}
+function projClass(p){
+  return {'NP 投稿':'proj-np','ZF Study':'proj-zf','LH Model':'proj-lh','Seminar':'proj-seminar','生活':'proj-life'}[p] || 'proj-default';
+}
+function escapeHtml(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function render(){
+  if(autoPromote()) scheduleSave();
+  ['todo','inprogress','done'].forEach(s => {
+    let ts = tasks.filter(t => t.status === s);
+    if(s !== 'done') ts.sort((a,b) => {
+      const pa = pOrder(priority(a.deadline));
+      const pb = pOrder(priority(b.deadline));
+      if(pa !== pb) return pa - pb;
+      return (a.deadline || 'zzzz').localeCompare(b.deadline || 'zzzz');
+    });
+    document.getElementById('cnt-' + s).textContent = ts.length;
+    const tabCnt = document.getElementById('tab-cnt-' + s);
+    if(tabCnt) tabCnt.textContent = ts.length;
+    const c = document.getElementById('cards-' + s);
+    if(!ts.length){
+      c.innerHTML = '<div class="empty"><div class="empty-icon">📭</div>暂无任务</div>';
+      return;
+    }
+    c.innerHTML = ts.map(t => renderCard(t)).join('');
+  });
+  renderStats();
+}
+function renderCard(t){
+  const p = t.status === 'done' ? 'low' : priority(t.deadline);
+  const dl = t.status === 'done'
+    ? (t.deadline ? {txt:'📅 ' + t.deadline, cls:''} : null)
+    : dlInfo(t.deadline);
+  const isLH = t.project === 'LH Model';
+  const subList = t.subtasks || [];
+  const ds = subList.filter(s => s.done).length;
+  const tc = subList.length;
+  const pct = tc ? Math.round(ds/tc*100) : 0;
+  const subs = tc ? `<div class="subtasks">
+    <div class="sub-prog"><div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div><span style="font-size:11px;color:var(--muted)">${ds}/${tc}</span></div>
+    ${subList.map((s,i) => `<div class="sub-item${s.done?' done':''}"><input type="checkbox"${s.done?' checked':''} onclick="toggleSub(${t.id},${i});event.stopPropagation()"><span>${escapeHtml(s.text)}</span></div>`).join('')}
+  </div>` : '';
+  const mvBtns = {
+    todo: `<button class="act-btn" onclick="mv(${t.id},'inprogress');event.stopPropagation()">→ 进行中</button>`,
+    inprogress: `<button class="act-btn" onclick="mv(${t.id},'todo');event.stopPropagation()">← 待办</button><button class="act-btn" onclick="mv(${t.id},'done');event.stopPropagation()">→ 完成 ✓</button>`,
+    done: `<button class="act-btn" onclick="mv(${t.id},'inprogress');event.stopPropagation()">↩ 重启</button>`
+  }[t.status];
+  return `<div class="card p-${p}" onclick="openEdit(${t.id})">
+    <div class="card-top">
+      <div class="card-title">${escapeHtml(t.title)}</div>
+      ${t.status !== 'done' ? (isLH ? `<span class="secondary-badge">次优先</span>` : `<span class="pbadge pb-${p}">${pLabel(p)}</span>`) : ''}
+    </div>
+    <div class="card-meta">
+      ${t.project ? `<span class="proj-tag ${projClass(t.project)}">${escapeHtml(t.project)}</span>` : ''}
+      ${dl ? `<span class="dl-tag ${dl.cls}">${dl.txt}</span>` : ''}
+    </div>
+    ${t.note ? `<div class="card-note">${escapeHtml(t.note)}</div>` : ''}
+    ${subs}
+    <div class="card-actions" onclick="event.stopPropagation()">
+      ${mvBtns}
+      <button class="act-btn" onclick="openEdit(${t.id});event.stopPropagation()">✏ 编辑</button>
+      <button class="act-btn del" onclick="del(${t.id});event.stopPropagation()">🗑</button>
+    </div>
+  </div>`;
+}
+function renderStats(){
+  const urg = tasks.filter(t => t.status !== 'done' && priority(t.deadline) === 'urgent').length;
+  function prog(proj){
+    const d = tasks.filter(t => t.project === proj);
+    return `${d.filter(t => t.status === 'done').length}/${d.length}`;
+  }
+  document.getElementById('statsBar').innerHTML = `
+    <div class="stat"><div class="dot" style="background:#f6ad55"></div>NP 投稿：<strong>${prog('NP 投稿')}</strong></div>
+    <div class="stat"><div class="dot" style="background:#38bdf8"></div>ZF Study：<strong>${prog('ZF Study')}</strong></div>
+    <div class="stat"><div class="dot" style="background:#f9a8d4"></div>LH Model：<strong>${prog('LH Model')}</strong></div>
+    <div class="stat"><div class="dot" style="background:#c4b5fd"></div>Seminar：<strong>${prog('Seminar')}</strong></div>
+    ${urg ? `<div class="stat" style="color:#e53e3e"><div class="dot" style="background:#fc8181"></div>🔴 紧急：<strong>${urg} 项</strong></div>` : ''}
+    ${lastSavedAt ? `<div class="saved-tag">💾 已保存 ${lastSavedAt.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}</div>` : ''}
+  `;
+}
+
+// ---------- task ops ----------
+function toggleSub(tid, i){
+  const t = tasks.find(x => x.id === tid);
+  if(t && t.subtasks && t.subtasks[i]){ t.subtasks[i].done = !t.subtasks[i].done; persist(); }
+}
+function mv(tid, s){
+  const t = tasks.find(x => x.id === tid);
+  if(t){ t.status = s; persist(); }
+}
+function del(tid){
+  if(confirm('确认删除此任务？')){
+    tasks = tasks.filter(x => x.id !== tid);
+    persist();
+  }
+}
+function openAdd(s){
+  editId = null; tmpSubs = [];
+  document.getElementById('modal-ttl').textContent = '添加任务';
+  ['f-title','f-project','f-deadline','f-note'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-status').value = s || 'todo';
+  renderSubEditor();
+  document.getElementById('overlay').classList.remove('hidden');
+  setTimeout(() => document.getElementById('f-title').focus(), 50);
+}
+function openEdit(tid){
+  const t = tasks.find(x => x.id === tid); if(!t) return;
+  editId = tid;
+  tmpSubs = (t.subtasks || []).map(s => ({...s}));
+  document.getElementById('modal-ttl').textContent = '编辑任务';
+  document.getElementById('f-title').value = t.title || '';
+  document.getElementById('f-project').value = t.project || '';
+  document.getElementById('f-status').value = t.status;
+  document.getElementById('f-deadline').value = t.deadline || '';
+  document.getElementById('f-note').value = t.note || '';
+  renderSubEditor();
+  document.getElementById('overlay').classList.remove('hidden');
+}
+function closeModal(){ document.getElementById('overlay').classList.add('hidden'); }
+function saveTask(){
+  const title = document.getElementById('f-title').value.trim();
+  if(!title){ alert('请输入任务标题'); return; }
+  const d = {
+    title,
+    project: document.getElementById('f-project').value.trim(),
+    status: document.getElementById('f-status').value,
+    deadline: document.getElementById('f-deadline').value,
+    note: document.getElementById('f-note').value.trim(),
+    subtasks: tmpSubs
+  };
+  if(editId !== null){
+    const i = tasks.findIndex(x => x.id === editId);
+    if(i >= 0) tasks[i] = {...tasks[i], ...d};
+  } else {
+    tasks.push({id: nextId++, ...d});
+  }
+  closeModal();
+  persist();
+}
+function renderSubEditor(){
+  document.getElementById('sub-edit-list').innerHTML = tmpSubs.map((s,i) => `
+    <div class="sei">
+      <input type="checkbox"${s.done?' checked':''} onchange="tmpSubs[${i}].done=this.checked" style="cursor:pointer;width:13px;height:13px;accent-color:var(--primary)">
+      <input type="text" value="${escapeHtml(s.text)}" oninput="tmpSubs[${i}].text=this.value" placeholder="子任务…">
+      <button class="sei-rm" onclick="rmSub(${i})">×</button>
+    </div>`).join('');
+}
+function addSubFromInput(){
+  const inp = document.getElementById('new-sub-inp');
+  const txt = inp.value.trim();
+  if(!txt) return;
+  tmpSubs.push({text: txt, done: false});
+  inp.value = '';
+  renderSubEditor();
+}
+function rmSub(i){ tmpSubs.splice(i, 1); renderSubEditor(); }
+
+// ---------- export / import ----------
+function exportData(){
+  const blob = new Blob([JSON.stringify({tasks, nextId, version:1, exportedAt:new Date().toISOString()}, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const ts = new Date().toISOString().slice(0,10);
+  a.href = url; a.download = `kanban-backup-${ts}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+  toast('已导出本地数据', 'success');
+}
+function importData(input){
+  const file = input.files && input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async e => {
+    try{
+      const data = JSON.parse(e.target.result);
+      if(!data || !Array.isArray(data.tasks)) throw new Error('JSON 中没有有效的 tasks 数组');
+      if(!confirm(`导入将用文件中的数据【覆盖云端 + 本地】（${data.tasks.length} 个任务）。\n\n这会同时改变其他设备上的看板。确定继续？`)){
+        input.value = ''; return;
+      }
+      tasks = data.tasks;
+      nextId = Number.isFinite(data.nextId) ? data.nextId : (tasks.reduce((m,t)=>Math.max(m,t.id||0),0)+1);
+      input.value = '';
+      saveCache();
+      render();
+      try{
+        await flushSaveImmediately();
+        toast('导入完成，已同步到云端', 'success');
+      }catch(err){
+        toast('导入到本地完成，但同步到云端失败：' + err.message, 'error');
+      }
+    }catch(err){
+      alert('导入失败：' + err.message);
+      input.value = '';
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ---------- listeners ----------
+document.getElementById('new-sub-inp').addEventListener('keydown', e => {
+  if(e.key === 'Enter'){ e.preventDefault(); addSubFromInput(); }
+});
+document.getElementById('overlay').addEventListener('click', e => {
+  if(e.target === document.getElementById('overlay')) closeModal();
+});
+document.getElementById('settings-overlay').addEventListener('click', e => {
+  if(e.target === document.getElementById('settings-overlay')) closeSettings();
+});
+window.addEventListener('beforeunload', () => {
+  if(saveTimer && settings) flushSaveImmediately();
+});
+let lastFocusReload = 0;
+window.addEventListener('focus', () => {
+  // refresh on focus, but only every 30s+ to avoid hammering API
+  if(!settings) return;
+  const state = document.getElementById('syncChip').dataset.state;
+  if(state !== 'idle') return;
+  if(Date.now() - lastFocusReload < 30000) return;
+  lastFocusReload = Date.now();
+  reloadFromCloud();
+});
+
+// ---------- boot ----------
+async function boot(){
+  try{
+    const savedTab = localStorage.getItem(TAB_KEY);
+    if(savedTab && ['todo','inprogress','done'].includes(savedTab)) setTab(savedTab);
+  }catch(e){}
+
+  if(loadCache()) render();
+
+  if(!settings){
+    setSync('unconfigured', '未配置');
+    openSettings();
+    return;
+  }
+  await reloadFromCloud();
+}
+boot();
+</script>
+</body>
+</html>

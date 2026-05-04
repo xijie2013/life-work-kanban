@@ -1,0 +1,20 @@
+# Local secrets — must NEVER be committed
+.kanban/
+token.txt
+*.token
+*.pat
+secrets.*
+.env
+.env.*
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# Local backups exported by the kanban
+kanban-backup-*.json
