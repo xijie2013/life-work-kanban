@@ -375,7 +375,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         </div>
         <div class="fg">
           <label>提前几天</label>
-          <input type="number" class="fc" id="rf-advance" min="0" max="30" value="3">
+          <input type="number" class="fc" id="rf-advance" min="2" max="30" value="3">
         </div>
       </div>
       <div class="fg">
@@ -809,8 +809,9 @@ function nextOccurrence(rem, from){
   switch(rem.recurrence){
     case 'once': {
       if(!rem.date) return null;
-      const d = new Date(rem.date + 'T00:00:00');
-      return d >= f ? d : null;
+      // keep returning the date even if it's in the past, so an un-acted
+      // one-time reminder stays visible (as overdue) until manually dismissed
+      return new Date(rem.date + 'T00:00:00');
     }
     case 'weekly': {
       const dow = parseInt(rem.dayOfWeek, 10);
@@ -886,8 +887,9 @@ function renderReminderStrip(){
     const next = nextOccurrence(rem, today);
     if(!next) return;
     const days = daysUntilDate(next, today);
-    if(days < 0) return;
-    const advance = Number.isFinite(rem.advanceDays) ? rem.advanceDays : 3;
+    // overdue (days < 0) one-time reminders stay until dismissed; only hide
+    // ones that are still too far in the future (beyond their advance window)
+    const advance = Math.max(2, Number.isFinite(rem.advanceDays) ? rem.advanceDays : 3);
     if(days > advance) return;
     if(isReminderDismissed(rem, today)) return;
     due.push({rem, next, days});
@@ -983,7 +985,7 @@ function saveReminder(){
   const r = {
     title,
     category: document.getElementById('rf-category').value,
-    advanceDays: parseInt(document.getElementById('rf-advance').value, 10) || 0,
+    advanceDays: Math.max(2, parseInt(document.getElementById('rf-advance').value, 10) || 2),  // floor: at least 2 days' notice
     recurrence,
     time: document.getElementById('rf-time').value || null,
     note: document.getElementById('rf-note').value.trim()
@@ -1022,6 +1024,10 @@ function deleteCurrentReminder(){
 function dismissReminder(id){
   const rem = reminders.find(r => r.id === id);
   if(!rem) return;
+  const msg = rem.recurrence === 'once'
+    ? `关闭提醒「${rem.title}」？\n\n这是一次性提醒，关闭后将不再显示。`
+    : `关闭本次提醒「${rem.title}」？\n\n这是重复提醒，本次关闭后下次仍会提醒。`;
+  if(!confirm(msg)) return;
   const today = new Date(); today.setHours(0,0,0,0);
   if(rem.recurrence === 'once'){
     rem.dismissedUntil = '9999-12-31';
