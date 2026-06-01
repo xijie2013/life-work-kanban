@@ -22,7 +22,7 @@
     width:420px;max-width:100%;margin:0 auto;height:100vh;height:100dvh;
     display:flex;flex-direction:column;overflow:hidden;
     box-shadow:0 0 36px rgba(110,75,30,.18);}
-  #app{flex:1 1 auto;overflow-y:auto;min-height:0;-webkit-overflow-scrolling:touch;}
+  #app{flex:1 1 auto;overflow-y:auto;min-height:0;-webkit-overflow-scrolling:touch;padding-bottom:calc(60px + env(safe-area-inset-bottom,0px));}
   .farm-pin{position:sticky;top:0;z-index:5;}
   .pin-flush{margin:0;border-radius:0 0 16px 16px;border-top:none;border-left:none;border-right:none;box-shadow:0 5px 10px rgba(120,80,30,.13);}
   h1,h2,h3,h4{margin:0;}
@@ -60,7 +60,7 @@
   .hud-badge{position:absolute;top:-5px;right:-5px;background:#d2603a;color:#fff;font-size:9px;font-weight:800;min-width:15px;height:15px;line-height:15px;border-radius:8px;padding:0 3px;display:none;box-shadow:0 1px 3px rgba(0,0,0,.25);}
 
   /* tabs */
-  .tabbar{flex:0 0 auto;display:flex;
+  .tabbar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:420px;max-width:100%;padding-bottom:env(safe-area-inset-bottom,0px);display:flex;
     background:var(--panel);border-top:1px solid var(--line);z-index:40;box-shadow:0 -2px 10px rgba(120,80,30,.06);}
   .tab{flex:1;border:none;background:none;padding:8px 2px 7px;font-size:11px;color:var(--muted);
     display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;font-weight:600;}
@@ -202,7 +202,7 @@
    收服怪兽派工&编队 → 餐厅塔防经营。看板任务完成给高级奖励。
    ========================================================================= */
 
-const GAME_VERSION = 'v1.2 · 2026-06-01（农场缩短）';
+const GAME_VERSION = 'v1.3 · 2026-06-01（修复手机底栏不显示）';
 
 // ---------- 内容定义 ----------
 const ING = {
