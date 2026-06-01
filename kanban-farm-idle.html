@@ -16,14 +16,20 @@
     --shadow:0 4px 14px rgba(120,80,30,.10);
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html{background:#e9d8bf;}
   body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
     background:linear-gradient(160deg,#fff7ec,#ffeed8);color:var(--ink);
-    max-width:760px;margin:0 auto;min-height:100vh;padding-bottom:74px;}
+    width:420px;max-width:100%;margin:0 auto;height:100vh;height:100dvh;
+    display:flex;flex-direction:column;overflow:hidden;
+    box-shadow:0 0 36px rgba(110,75,30,.18);}
+  #app{flex:1 1 auto;overflow-y:auto;min-height:0;-webkit-overflow-scrolling:touch;}
+  .farm-pin{position:sticky;top:0;z-index:5;}
+  .pin-flush{margin:0;border-radius:0 0 16px 16px;border-top:none;border-left:none;border-right:none;box-shadow:0 5px 10px rgba(120,80,30,.13);}
   h1,h2,h3,h4{margin:0;}
   .hidden{display:none!important;}
 
   /* top resource bar */
-  .topbar{position:sticky;top:0;z-index:30;background:rgba(255,253,248,.92);backdrop-filter:blur(8px);
+  .topbar{flex:0 0 auto;position:relative;z-index:30;background:rgba(255,253,248,.92);backdrop-filter:blur(8px);
     border-bottom:1px solid var(--line);padding:8px 12px;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;}
   .res{display:flex;align-items:center;gap:4px;font-weight:700;font-size:14px;}
   .res .ico{font-size:17px;}
@@ -32,8 +38,29 @@
   .lvl-bar{height:7px;background:#efe2cd;border-radius:6px;overflow:hidden;margin-top:3px;}
   .lvl-fill{height:100%;background:linear-gradient(90deg,#f0c14b,#e58a3c);width:0%;transition:width .3s;}
 
+  /* —— 图片化 HUD —— */
+  .hud{display:flex;align-items:center;gap:6px;width:100%;}
+  .stat-pill{display:flex;align-items:center;gap:4px;background:linear-gradient(#fffdf8,#fbf2e2);border:1px solid #ecdcc4;border-radius:20px;padding:3px 9px 3px 3px;box-shadow:0 1px 3px rgba(150,110,50,.12);}
+  .stat-pill .pic{width:23px;height:23px;flex:0 0 auto;display:block;}
+  .stat-pill .val{font-weight:800;font-size:13.5px;color:#5b4632;font-variant-numeric:tabular-nums;}
+  #v-coin{display:inline-block;min-width:36px;text-align:left;}
+  #v-energy{display:inline-block;min-width:17px;text-align:left;}
+  .stat-pill.energy{cursor:pointer;border-color:#f1c860;background:linear-gradient(#fff8e6,#ffedba);animation:epulse 2.2s ease-in-out infinite;}
+  @keyframes epulse{0%,100%{box-shadow:0 0 5px rgba(240,180,40,.3)}50%{box-shadow:0 0 13px rgba(240,180,40,.75)}}
+  .hud .lvl-box{flex:1;display:flex;align-items:center;gap:6px;min-width:86px;}
+  .hud .avatar{position:relative;width:29px;height:29px;flex:0 0 auto;}
+  .hud .avatar svg{width:29px;height:29px;display:block;filter:drop-shadow(0 1px 1px rgba(0,0,0,.15))}
+  .hud .lvl-badge{position:absolute;right:-5px;bottom:-4px;background:#e58a3c;color:#fff;font-size:8.5px;font-weight:800;border-radius:9px;padding:0 4px;border:1.5px solid #fffdf8;}
+  .hud .xp{position:relative;flex:1;height:12px;background:#ecdcc4;border-radius:7px;overflow:hidden;min-width:56px;}
+  .hud .xp-fill{position:relative;overflow:hidden;height:100%;width:0;background:linear-gradient(90deg,#7fc24a,#f0c14b,#e58a3c);border-radius:7px;transition:width .4s ease;}
+  .hud .xp-fill::after{content:"";position:absolute;top:0;left:0;height:100%;width:45%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);animation:xpsheen 2.2s linear infinite;}
+  @keyframes xpsheen{0%{transform:translateX(-130%)}100%{transform:translateX(320%)}}
+  .hud .xp-txt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:8.5px;font-weight:800;color:#5b4632;text-shadow:0 1px 0 rgba(255,255,255,.5);}
+  .hud .gear{border:none;background:#f3e8d6;border-radius:10px;width:30px;height:30px;font-size:15px;cursor:pointer;color:#7a6448;flex:0 0 auto;}
+  .hud-badge{position:absolute;top:-5px;right:-5px;background:#d2603a;color:#fff;font-size:9px;font-weight:800;min-width:15px;height:15px;line-height:15px;border-radius:8px;padding:0 3px;display:none;box-shadow:0 1px 3px rgba(0,0,0,.25);}
+
   /* tabs */
-  .tabbar{position:fixed;bottom:0;left:0;right:0;max-width:760px;margin:0 auto;display:flex;
+  .tabbar{flex:0 0 auto;display:flex;
     background:var(--panel);border-top:1px solid var(--line);z-index:40;box-shadow:0 -2px 10px rgba(120,80,30,.06);}
   .tab{flex:1;border:none;background:none;padding:8px 2px 7px;font-size:11px;color:var(--muted);
     display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;font-weight:600;}
@@ -58,26 +85,41 @@
   .btn.sm{padding:5px 10px;font-size:12px;border-radius:8px;}
   .pill{display:inline-flex;align-items:center;gap:3px;background:#f3e8d6;border-radius:20px;padding:2px 9px;font-size:11.5px;font-weight:700;color:#7a6448;}
 
-  /* farm grid */
-  .plot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px;}
-  .plot{background:linear-gradient(160deg,#f6ead2,#efdcbc);border:1px solid #e3cfa8;border-radius:14px;
-    padding:9px 7px;text-align:center;position:relative;cursor:pointer;overflow:hidden;}
+  /* farm grid — 3x3 等大正方形 */
+  .plot-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+  .plot{aspect-ratio:3/2;background:linear-gradient(160deg,#f6ead2,#efdcbc);border:1px solid #e3cfa8;border-radius:13px;
+    padding:5px;position:relative;cursor:pointer;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
   .plot.ready{animation:bob .9s ease-in-out infinite;border-color:var(--green);}
   @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
-  .plot .crop{font-size:34px;line-height:1.1;filter:drop-shadow(0 2px 2px rgba(0,0,0,.12));}
+  .plot .crop{font-size:30px;line-height:1.05;filter:drop-shadow(0 2px 2px rgba(0,0,0,.12));}
   .plot .cropname{font-size:11px;font-weight:700;margin-top:1px;}
-  .plot .pbar{height:6px;background:#e0cba6;border-radius:5px;overflow:hidden;margin-top:5px;}
+  .plot .pbar{height:6px;width:80%;background:#e0cba6;border-radius:5px;overflow:hidden;margin-top:5px;}
   .plot .pfill{height:100%;background:linear-gradient(90deg,#8fc16a,#6fa84f);width:0%;}
   .plot .worker{position:absolute;top:3px;right:4px;font-size:16px;}
   .plot .lvtag{position:absolute;top:3px;left:5px;font-size:10px;font-weight:800;color:#a8835a;}
-  .plot.locked{display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);min-height:120px;
-    background:repeating-linear-gradient(45deg,#f1e6d3,#f1e6d3 8px,#ece0cb 8px,#ece0cb 16px);}
+  .plot.newplot{color:var(--muted);background:repeating-linear-gradient(45deg,#f1e6d3,#f1e6d3 8px,#ece0cb 8px,#ece0cb 16px);border-style:dashed;}
+  .plot.lockcell{background:#efe4d2;border-style:dashed;border-color:#ddc8a8;cursor:default;opacity:.6;}
   .plot.ready .ripe{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:800;color:var(--green-d);}
 
   /* ingredient chips */
   .ing-wrap{display:flex;flex-wrap:wrap;gap:6px;}
   .ing{display:flex;align-items:center;gap:3px;background:#f6ecda;border:1px solid #ecdcc0;border-radius:9px;padding:4px 8px;font-size:13px;font-weight:700;}
   .ing .n{color:#7a6448;font-size:12px;}
+
+  /* 背包格子 */
+  .bag{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;}
+  .bag-cell{position:relative;aspect-ratio:1/1;background:linear-gradient(160deg,#f6ecda,#efdfc4);border:1px solid #e3cfa8;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:25px;box-shadow:inset 0 1px 2px rgba(255,255,255,.6),0 1px 2px rgba(150,110,50,.1);}
+  .bag-cell{cursor:pointer;}
+  .bag-cell .qty{position:absolute;right:3px;bottom:2px;font-size:10px;font-weight:800;color:#5b4632;background:rgba(255,255,255,.82);border-radius:6px;padding:0 3px;min-width:14px;text-align:center;line-height:14px;}
+  .bag-cell .price{position:absolute;left:3px;top:2px;font-size:8px;font-weight:800;color:#b9742f;}
+  .bag-cell.empty{opacity:.35;}
+  .bag-cell:active{transform:scale(.94);}
+
+  /* 生长能量分行 + 排序按钮 */
+  .grow-line{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:#7a6448;padding:4px 0;border-top:1px dashed var(--line);}
+  .sortbtns{display:flex;gap:4px;}
+  .sortb{border:1px solid var(--line);background:#f3e8d6;color:#7a6448;border-radius:7px;padding:2px 8px;font-size:11px;font-weight:700;cursor:pointer;}
+  .sortb.on{background:var(--accent);color:#fff;border-color:var(--accent);}
 
   /* monster cards */
   .mon-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px;}
@@ -113,6 +155,9 @@
   /* achievements */
   .ach{display:flex;gap:11px;align-items:center;}
   .ach .abadge{font-size:30px;width:46px;text-align:center;}
+  .ach .cap-btn{display:flex;align-items:center;gap:1px;border:1px solid #f1c860;background:#fff3e0;border-radius:9px;padding:3px 6px 3px 4px;font-size:11px;font-weight:800;color:#c9533f;cursor:pointer;flex:0 0 auto;animation:epulse 2.2s ease-in-out infinite;}
+  .ach .cap-btn:active{transform:scale(.92);}
+  .ach .cap-got{flex:0 0 auto;opacity:.4;filter:grayscale(.6);}
   .ach.locked{opacity:.5;filter:grayscale(.9);}
   .ach .at{font-weight:800;font-size:13.5px;}
   .ach .ad{font-size:11.5px;color:var(--muted);}
@@ -145,8 +190,6 @@
   <button class="tab" data-tab="kitchen"><span class="tico">🍳</span>厨房</button>
   <button class="tab" data-tab="monsters"><span class="tico">👾</span>伙伴</button>
   <button class="tab" data-tab="restaurant"><span class="tico">🏰</span>餐厅</button>
-  <button class="tab" data-tab="tasks"><span class="tico">📋</span>任务</button>
-  <button class="tab" data-tab="ach"><span class="tico">🏆</span>成就</button>
 </div>
 
 <div id="toast"></div>
@@ -159,13 +202,13 @@
    收服怪兽派工&编队 → 餐厅塔防经营。看板任务完成给高级奖励。
    ========================================================================= */
 
-const GAME_VERSION = 'v0.3 · 2026-06-01（云存档 + 设置）';
+const GAME_VERSION = 'v1.2 · 2026-06-01（农场缩短）';
 
 // ---------- 内容定义 ----------
 const ING = {
-  wheat:{e:'🌾',n:'小麦'}, tomato:{e:'🍅',n:'番茄'}, chili:{e:'🌶️',n:'辣椒'},
-  egg:{e:'🥚',n:'蛋'}, cheese:{e:'🧀',n:'奶酪'}, fish:{e:'🐟',n:'鱼'},
-  meat:{e:'🥩',n:'肉'}, herb:{e:'🌿',n:'香料'}
+  wheat:{e:'🌾',n:'小麦',cat:'谷物',price:2}, tomato:{e:'🍅',n:'番茄',cat:'蔬菜',price:3}, chili:{e:'🌶️',n:'辣椒',cat:'蔬菜',price:4},
+  egg:{e:'🥚',n:'蛋',cat:'其他',price:3}, cheese:{e:'🧀',n:'奶酪',cat:'其他',price:5}, fish:{e:'🐟',n:'鱼',cat:'肉类',price:6},
+  meat:{e:'🥩',n:'肉',cat:'肉类',price:7}, herb:{e:'🌿',n:'香料',cat:'香料',price:5}
 };
 const ING_KEYS = Object.keys(ING);
 
@@ -224,8 +267,11 @@ let S = {
     {crop:'tomato',lv:1, prog:0, worker:null, unlocked:true},
     {crop:'chili', lv:1, prog:0, worker:null, unlocked:true},
     {crop:null, unlocked:false, cost:80},
-    {crop:null, unlocked:false, cost:150},
-    {crop:null, unlocked:false, cost:300},
+    {crop:null, unlocked:false, cost:160},
+    {crop:null, unlocked:false, cost:320},
+    {crop:null, unlocked:false, cost:640},
+    {crop:null, unlocked:false, cost:1200},
+    {crop:null, unlocked:false, cost:2400},
   ],
   monsters:[],            // 拥有的怪兽实例
   unlockedTowers:[],      // 已解锁塔 id
@@ -234,6 +280,7 @@ let S = {
   rewarded:[],            // 已发过奖励的真实看板任务 id（只读联动）
   syncedOnce:false,       // 是否完成过首次看板同步（用于建立基线，不补发历史奖励）
   ach:{},
+  achClaimed:[],          // 已领取扭蛋奖励的成就 id
   battleTeam:[],          // 怪兽 id 编队（最多4）
   satisfaction:100,
   lastTick:Date.now(),
@@ -241,6 +288,7 @@ let S = {
 let monSeq = 1;
 let curTab = 'farm';
 let selectedPotIngs = [];
+let bagSort = 'cat';      // 材料仓库排序：cat | qty | price
 let PROJ_MULT = 1;        // 进行中任务带来的农场产出倍率
 let PROJ_COUNTS = {};     // 各项目进行中任务数
 let EVENTS = [];          // 即将到来的提醒 → 餐厅事件
@@ -257,7 +305,7 @@ function giveMonster(key, silent){
 }
 
 // ---------- 工具 ----------
-function fmt(n){ n=Math.floor(n); if(n>=1e6)return (n/1e6).toFixed(1)+'M'; if(n>=1e3)return (n/1e3).toFixed(1)+'k'; return ''+n; }
+function fmt(n){ n=Math.floor(n); if(n>=1e9)return Math.floor(n/1e9)+'B'; if(n>=1e6)return Math.floor(n/1e6)+'M'; if(n>=1e3)return Math.floor(n/1e3)+'k'; return ''+n; }
 function escapeHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function toast(msg){
   const t=document.getElementById('toast');
@@ -276,13 +324,20 @@ function plotSpeed(p){
   return base;
 }
 function plotMax(p){ return 8 + p.lv*4; }
+// 生长能量：基础 1 + 已完成任务×0.1 + 已关闭(被X掉)提醒×0.01，驱动整片农场产出
+function growthStats(){
+  const d=KANBAN.data; let done=0, dis=0;
+  if(d){ done=d.tasks.filter(t=>t.status==='done').length; dis=(d.reminders||[]).filter(r=>r.dismissedUntil).length; }
+  else { done=(S.doneTasks||[]).length; }
+  return {done, dis, mult: 1 + 0.1*done + 0.01*dis};
+}
 
 // ---------- idle tick ----------
 function tick(dtSec){
   // 农场生长
   S.plots.forEach(p=>{
     if(!p.unlocked || !p.crop) return;
-    p.prog += plotSpeed(p)*dtSec*PROJ_MULT;
+    p.prog += plotSpeed(p)*dtSec*growthStats().mult;
     // 自动收获：满了就入库并重新开始（idle 核心）
     while(p.prog >= 100){
       p.prog -= 100;
@@ -305,18 +360,60 @@ setInterval(()=>{
 }, 1000);
 
 // ---------- 顶栏 ----------
+const SVG_COIN='<svg class="pic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#f6c84b" stroke="#d99a2b" stroke-width="1.6"/><circle cx="12" cy="12" r="6.4" fill="none" stroke="#e0a83a" stroke-width="1.4"/><ellipse cx="9" cy="8.6" rx="2.3" ry="1.3" fill="#fff" opacity=".55"/></svg>';
+const SVG_ENERGY='<svg class="pic" viewBox="0 0 24 24"><path d="M13 2 L4 13 h6 l-2 9 11-13 h-7 z" fill="#ffd23f" stroke="#e8a317" stroke-width="1.3" stroke-linejoin="round"/></svg>';
+const SVG_MAT='<svg class="pic" viewBox="0 0 24 24"><path d="M7 7 Q12 3 17 7 q3 4 2.4 9 Q19 21 12 21 Q5 21 4.6 16 Q4 11 7 7Z" fill="#d6a86a" stroke="#9a6f3e" stroke-width="1.3"/><path d="M8 7 q4 -2 8 0" fill="none" stroke="#9a6f3e" stroke-width="1.3"/><rect x="9.5" y="11" width="5" height="2.2" rx="1.1" fill="#8a5a2e"/></svg>';
+const SVG_SPROUT='<svg viewBox="0 0 24 24"><rect x="11" y="11" width="2" height="9" rx="1" fill="#7a9a4a"/><path d="M12 12 C7 11 6 6 11 6 c0 3 1 5 1 6Z" fill="#6fa84f"/><path d="M12 12 C17 11 18 6 13 6 c0 3 -1 5 -1 6Z" fill="#8fc16a"/></svg>';
+// 扭蛋（gachapon 胶囊）图标
+function gachaSVG(px){ return `<svg viewBox="0 0 24 24" style="width:${px}px;height:${px}px;display:inline-block;vertical-align:middle;flex:0 0 auto;filter:drop-shadow(0 1px 1px rgba(0,0,0,.12))">
+  <path d="M3 12 A9 9 0 0 1 21 12 Z" fill="#ef6f5a"/>
+  <path d="M3 12 A9 9 0 0 0 21 12 Z" fill="#fff3e0"/>
+  <line x1="3.3" y1="12" x2="20.7" y2="12" stroke="#c9533f" stroke-width="1.6"/>
+  <circle cx="12" cy="12" r="9" fill="none" stroke="#c9533f" stroke-width="1.5"/>
+  <circle cx="12" cy="12" r="2.4" fill="#ffd23f" stroke="#c9533f" stroke-width="1"/>
+  <ellipse cx="9" cy="7.4" rx="2" ry="1.1" fill="#fff" opacity=".5"/>
+</svg>`; }
+
+let _hud={coin:0,energy:0,mat:0,xp:0,built:false};
 function renderTopbar(){
-  const need=levelNeed(S.level); const pct=Math.min(100, S.xp/need*100);
-  const totalIng=ING_KEYS.reduce((a,k)=>a+(S.ing[k]||0),0);
+  if(_hud.built) return;                       // 只构建一次，数值由 hudTick 平滑滚动更新
   document.getElementById('topbar').innerHTML = `
-    <div class="res"><span class="ico">💰</span>${fmt(S.coin)}<small>金币</small></div>
-    <div class="res"><span class="ico">⚡</span>${S.energy}<small>能量</small></div>
-    <div class="res"><span class="ico">🌾</span>${totalIng}<small>材料</small></div>
-    <div class="lvl-wrap">
-      <div class="res" style="font-size:12px">👨‍🔬 Lv.${S.level}<small>${Math.floor(S.xp)}/${need}</small></div>
-      <div class="lvl-bar"><div class="lvl-fill" style="width:${pct}%"></div></div>
-    </div>
-    <button onclick="openGameSettings()" title="设置 / 版本" style="border:none;background:#f3e8d6;border-radius:9px;width:34px;height:34px;font-size:17px;cursor:pointer;color:#7a6448;flex:0 0 auto">⚙</button>`;
+    <div class="hud">
+      <div class="stat-pill" id="pill-coin" title="金币">${SVG_COIN}<span class="val" id="v-coin">0</span></div>
+      <div class="stat-pill energy" id="pill-energy" title="扭蛋·点击查看" onclick="energyInfo()">${gachaSVG(23)}<span class="val" id="v-energy">0</span></div>
+      <div class="lvl-box">
+        <div class="avatar">${SVG_SPROUT}<span class="lvl-badge" id="v-lvl">Lv1</span></div>
+        <div class="xp"><div class="xp-fill" id="xp-fill"></div><span class="xp-txt" id="v-xp"></span></div>
+      </div>
+      <button class="gear" onclick="openTasks()" title="任务" style="position:relative">📋<span class="hud-badge" id="task-badge"></span></button>
+      <button class="gear" onclick="openAchievements()" title="成就">🏆</button>
+      <button class="gear" onclick="openGameSettings()" title="设置 / 版本">⚙</button>
+    </div>`;
+  _hud.coin=S.coin; _hud.energy=S.energy; _hud.mat=ING_KEYS.reduce((a,k)=>a+(S.ing[k]||0),0); _hud.xp=S.xp;
+  _hud.built=true;
+  requestAnimationFrame(hudTick);
+}
+function _setT(id,v){ const e=document.getElementById(id); if(e&&e.textContent!==v) e.textContent=v; }
+function hudTick(){
+  if(_hud.built){
+    const need=levelNeed(S.level);
+    const tgt={coin:S.coin, energy:S.energy, xp:S.xp};
+    ['coin','energy','xp'].forEach(k=>{ const d=tgt[k]-_hud[k]; _hud[k]+= Math.abs(d)<0.5 ? d : d*0.18; });
+    _setT('v-coin', fmt(_hud.coin));
+    _setT('v-energy', String(Math.round(_hud.energy)));
+    _setT('v-lvl', 'Lv'+S.level);
+    const xf=document.getElementById('xp-fill'); if(xf) xf.style.width=Math.min(100,_hud.xp/need*100)+'%';
+    _setT('v-xp', Math.floor(_hud.xp)+' / '+need);
+    const pc=pendingCount(), tb=document.getElementById('task-badge');
+    if(tb){ if(pc>0){ tb.textContent=pc>9?'9+':String(pc); tb.style.display='block'; } else tb.style.display='none'; }
+  }
+  requestAnimationFrame(hudTick);
+}
+function energyInfo(){
+  modal(`<h3>${gachaSVG(20)} 扭蛋 <button class="x" onclick="closeModal()">×</button></h3>
+    <div style="font-size:13px;line-height:1.85"><b>扭蛋</b>是完成真实看板任务、解锁成就获得的高级货币，将用来在四个<b>卡池</b>抽卡：<br>🌱 种子卡池（农场）<br>🍳 菜谱卡池（厨房）<br>👾 怪兽卡池（伙伴）<br>🎀 装饰卡池（餐厅）</div>
+    <div style="font-size:12px;color:var(--muted);margin-top:10px">抽卡系统开发中——现在扭蛋先攒着。你当前有 <b>${S.energy}</b> 颗。</div>
+    <button class="btn green" style="width:100%;margin-top:12px" onclick="closeModal()">好的</button>`);
 }
 function openGameSettings(){
   const s=kanbanToken();
@@ -348,17 +445,26 @@ function resetSave(){
 }
 
 // ============================ 农场 ============================
+function ensurePlots(){
+  if(!Array.isArray(S.plots)) S.plots=[];
+  const costs=[80,160,320,640,1200,2400];
+  while(S.plots.length<9){ const idx=S.plots.length-3; S.plots.push({crop:null,unlocked:false,cost:costs[idx]!=null?costs[idx]:2400}); }
+}
 function renderFarm(){
-  const cropPick = ING_KEYS.map(k=>`<option value="${k}">${ING[k].e} ${ING[k].n}</option>`).join('');
+  ensurePlots();
+  const nextLock = S.plots.findIndex(p=>!p.unlocked);   // 只有下一块可开垦、可见价格
   let plots = S.plots.map((p,i)=>{
     if(!p.unlocked){
-      return `<div class="plot locked" onclick="buyPlot(${i})">
-        <div style="font-size:26px">➕</div><div style="font-size:11px;font-weight:800">开垦新地</div>
-        <div class="pill" style="margin-top:5px">💰 ${p.cost}</div></div>`;
+      if(i===nextLock){
+        return `<div class="plot newplot" onclick="buyPlot(${i})">
+          <div style="font-size:24px">➕</div><div class="cropname">开垦新地</div>
+          <div class="pill" style="margin-top:3px">💰 ${p.cost}</div></div>`;
+      }
+      return `<div class="plot lockcell"><div style="font-size:21px">🔒</div></div>`;
     }
     if(!p.crop){
       return `<div class="plot" onclick="plantPrompt(${i})">
-        <div class="crop">🟫</div><div class="cropname">空地·点击播种</div></div>`;
+        <div class="crop">🟫</div><div class="cropname">空地·播种</div></div>`;
     }
     const ready = p.prog>=100;
     const wm = p.worker? monById(p.worker) : null;
@@ -371,34 +477,60 @@ function renderFarm(){
     </div>`;
   }).join('');
 
-  const ingChips = ING_KEYS.map(k=>`<div class="ing">${ING[k].e}<span class="n">${ING[k].n}</span> ${fmt(S.ing[k]||0)}</div>`).join('');
+  let keys=[...ING_KEYS];
+  if(bagSort==='qty') keys.sort((a,b)=>(S.ing[b]||0)-(S.ing[a]||0));
+  else if(bagSort==='price') keys.sort((a,b)=>ING[b].price-ING[a].price);
+  else keys.sort((a,b)=> ING[a].cat.localeCompare(ING[b].cat,'zh') || ING[a].n.localeCompare(ING[b].n,'zh'));
+  const bag = keys.map(k=>{ const q=S.ing[k]||0;
+    return `<div class="bag-cell${q<=0?' empty':''}" title="${ING[k].n}（${ING[k].cat}）单价 ${ING[k].price}" onclick="sellOpen('${k}')">
+      <span class="price">${ING[k].price}💰</span>${ING[k].e}<span class="qty">${fmt(q)}</span></div>`;
+  }).join('');
 
-  const totalIP=Object.values(PROJ_COUNTS).reduce((a,b)=>a+b,0);
-  const projPanel = KANBAN.data ? `<div class="card">
-      <div class="row" style="margin-bottom:8px"><div class="grow"><b>🔬 项目能量</b></div>
-        <span class="pill">进行中 ${totalIP} → 产出 ×${PROJ_MULT.toFixed(2)}</span></div>
-      <div class="ing-wrap">${Object.keys(PROJ_REWARD).map(p=>`<div class="ing">${p.replace(' 投稿','').replace(' Study','').replace(' Model','')}<span class="n">进行中</span> ${PROJ_COUNTS[p]||0}</div>`).join('')}</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:6px">看板里「进行中」的任务越多，农场产出越快。去推进真实工作吧 💪</div>
-    </div>` : '';
+  const g=growthStats();
+  const growPanel = `<div class="card">
+      <div class="row" style="margin-bottom:4px"><div class="grow"><b>🌿 生长能量</b></div><span class="pill">×${g.mult.toFixed(2)}</span></div>
+      <div class="grow-line"><span>基础</span><b>×1.00</b></div>
+      <div class="grow-line"><span>已完成任务 ${g.done} × 0.1</span><b>+${(0.1*g.done).toFixed(1)}</b></div>
+      <div class="grow-line"><span>已关闭提醒 ${g.dis} × 0.01</span><b>+${(0.01*g.dis).toFixed(2)}</b></div>
+    </div>`;
+  const sortBtn=(k,t)=>`<button class="sortb ${bagSort===k?'on':''}" onclick="setBagSort('${k}')">${t}</button>`;
 
   document.getElementById('app').innerHTML = `
-    <div class="screen">
-      <div class="screen-title">🌱 农场</div>
-      <div class="screen-sub">地块会随时间自动产出材料（idle 核心）。派怪兽打工可加速，关掉也在长。</div>
-      <div class="banner">💡 点「成熟」的地块手动收一波有额外手感；不点也会自动入库。给地块派农夫系怪兽、升级地块都能提速。</div>
-      <div class="card">
-        <div class="row" style="margin-bottom:9px">
-          <div class="grow"><b>我的田地</b></div>
-          <span class="pill">速度随怪兽 farm 值提升</span>
-        </div>
-        <div class="plot-grid">${plots}</div>
+    <div class="card farm-pin pin-flush">
+      <div class="row" style="margin-bottom:9px">
+        <div class="grow"><b>🌱 我的农场</b></div>
+        <span class="pill">派农夫怪兽可加速</span>
       </div>
-      ${projPanel}
+      <div class="plot-grid">${plots}</div>
+    </div>
+    <div class="screen">
+      ${growPanel}
       <div class="card">
-        <div style="font-weight:800;margin-bottom:8px">📦 材料仓库</div>
-        <div class="ing-wrap">${ingChips}</div>
+        <div class="row" style="margin-bottom:8px">
+          <div class="grow"><b>🎒 材料仓库</b></div>
+          <div class="sortbtns">${sortBtn('cat','类别')}${sortBtn('qty','数量')}${sortBtn('price','单价')}</div>
+        </div>
+        <div class="bag">${bag}</div>
       </div>
     </div>`;
+}
+function setBagSort(s){ bagSort=s; renderFarm(); }
+function sellOpen(k){
+  const q=S.ing[k]||0; if(q<=0){ toast('没有'+ING[k].n+'可卖'); return; }
+  const pr=ING[k].price;
+  modal(`<h3>${ING[k].e} 卖出${ING[k].n} <button class="x" onclick="closeModal()">×</button></h3>
+    <div style="font-size:13px">持有 <b>${fmt(q)}</b> 个　·　单价 <b>${pr}</b>💰</div>
+    <div class="row" style="gap:8px;margin-top:14px">
+      <button class="btn grow" onclick="sell('${k}',1)">卖 1（+${pr}）</button>
+      <button class="btn grow" onclick="sell('${k}',10)">卖 10</button>
+      <button class="btn green grow" onclick="sell('${k}',${q})">全部（+${pr*q}）</button>
+    </div>`);
+}
+function sell(k,n){
+  n=Math.min(n, S.ing[k]||0); if(n<=0){ closeModal(); return; }
+  S.ing[k]-=n; const gain=n*ING[k].price; S.coin+=gain;
+  toast(`卖出 ${ING[k].e}×${n}，+${gain}💰`); saveGame(); closeModal();
+  if(curTab==='farm') renderFarm();
 }
 function paintFarmProgress(){
   S.plots.forEach((p,i)=>{
@@ -812,98 +944,64 @@ const PROJ_REWARD = {
   'Seminar':  {energy:2, xp:50, mon:['owl']},
   '生活':      {energy:1, xp:20, ing:{wheat:6,egg:4}},
 };
-function grantTaskReward(t){
-  const legend=/Nature Physics/i.test(t.title||'');
-  const rw=PROJ_REWARD[t.project]||{energy:1,xp:25,coin:40};
+// —— 奖励发放 ——
+function applyReward(rw){
   S.energy+=rw.energy||0; addXp(rw.xp||0); if(rw.coin)S.coin+=rw.coin;
   if(rw.ing)Object.entries(rw.ing).forEach(([k,v])=>S.ing[k]=(S.ing[k]||0)+v);
   let monGot=null;
-  if(legend) monGot=giveMonster('unicorn',true);
-  else if(rw.mon && Math.random()<0.5) monGot=giveMonster(rw.mon[Math.floor(Math.random()*rw.mon.length)],true);
-  if(legend){
-    modal(`<h3>🏆 传说成就达成！</h3>
-      <div style="text-align:center">${monGot?monSprite(monGot,84):'🦄'}</div>
-      <div style="text-align:center;font-weight:800;margin:6px 0">${escapeHtml(t.title)}</div>
-      <div style="text-align:center;color:var(--muted);font-size:13px;margin:8px 0 14px">+${rw.energy}⚡ +${rw.xp}xp，传说伙伴加入队伍！</div>
-      <button class="btn green" style="width:100%" onclick="closeModal()">名留青史</button>`);
+  if(rw.legend) monGot=giveMonster('unicorn',true);
+  else if(rw.mon&&rw.mon.length&&Math.random()<0.55) monGot=giveMonster(rw.mon[Math.floor(Math.random()*rw.mon.length)],true);
+  return monGot;
+}
+function realRewardOf(t){ const b=PROJ_REWARD[t.project]||{energy:1,xp:25,coin:40}; return {...b, legend:/Nature Physics/i.test(t.title||'')}; }
+function mockRw(t){ return {energy:t.rw.energy,xp:t.rw.xp,coin:t.rw.coin,ing:t.rw.ing,mon:t.rw.mon?[t.rw.mon]:null,legend:t.rw.legend}; }
+function rewardChips(rw){
+  const c=[];
+  if(rw.energy)c.push(`扭蛋+${rw.energy}`); if(rw.xp)c.push(`✨+${rw.xp}`); if(rw.coin)c.push(`💰+${rw.coin}`);
+  if(rw.ing)c.push(Object.entries(rw.ing).map(([k,v])=>`${ING[k].e}+${v}`).join(' '));
+  if(rw.legend)c.push('🦄 传说怪兽'); else if(rw.mon&&rw.mon.length)c.push('👾 或得怪兽');
+  return c.map(x=>`<span class="rw">${x}</span>`).join('');
+}
+function claimableReal(){ const d=KANBAN.data; return d? d.tasks.filter(t=>t.status==='done' && !S.rewarded.includes(t.id)) : []; }
+function pendingCount(){
+  return KANBAN.data ? claimableReal().length
+    : TASKS.filter(t=>S.doneTasks.includes(t.id) && !S.rewarded.includes('m'+t.id)).length;
+}
+function rewardToast(mon,rw){ toast(`🎁 +${rw.energy||0} 扭蛋 +${rw.xp||0}xp${rw.coin?` +${rw.coin}💰`:''}${mon?' '+mon.s+mon.n:''}`); }
+function openTasks(){
+  const d=KANBAN.data; let claimHtml='', inHtml='';
+  const row=(proj,title,chips,btn,extra)=>`<div class="card task proj-${proj}">
+      <div class="row"><span class="pill">${escapeHtml(proj2label(proj))}</span><div class="grow" style="font-weight:700;font-size:13px">${escapeHtml(title)}</div>${extra||''}</div>
+      <div class="reward">${chips}</div>${btn||''}</div>`;
+  if(d){
+    const cl=claimableReal(), ip=d.tasks.filter(t=>t.status==='inprogress');
+    claimHtml=cl.map(t=>row(projClassKey(t.project),t.title,rewardChips(realRewardOf(t)),`<button class="btn green" style="width:100%;margin-top:8px" onclick="claimReal(${t.id})">🎁 领取奖励</button>`)).join('')
+      || `<div class="screen-sub" style="padding:4px 2px">暂无待领取奖励。</div>`;
+    inHtml=ip.map(t=>row(projClassKey(t.project),t.title,rewardChips(realRewardOf(t)),'',t.deadline?`<span class="rw" style="background:#eaf0fb;color:#4f86c6">📅${t.deadline}</span>`:'')).join('')
+      || `<div class="screen-sub" style="padding:4px 2px">看板里暂无进行中的任务。</div>`;
   } else {
-    toast(`✅「${(t.title||'').slice(0,12)}」完成！+${rw.energy}⚡ +${rw.xp}xp${monGot?' '+monGot.s:''}`);
+    const cl=TASKS.filter(t=>S.doneTasks.includes(t.id)&&!S.rewarded.includes('m'+t.id));
+    const ip=TASKS.filter(t=>!S.doneTasks.includes(t.id));
+    claimHtml=cl.map(t=>row(t.proj,t.t,rewardChips(mockRw(t)),`<button class="btn green" style="width:100%;margin-top:8px" onclick="claimMock(${t.id})">🎁 领取奖励</button>`)).join('')
+      || `<div class="screen-sub" style="padding:4px 2px">暂无待领取奖励。</div>`;
+    inHtml=ip.map(t=>row(t.proj,t.t,rewardChips(mockRw(t)),`<button class="btn ghost" style="width:100%;margin-top:8px" onclick="markMockDone(${t.id})">✅ 完成（测试）</button>`)).join('');
   }
+  modal(`<h3>📋 任务 <button class="x" onclick="closeModal()">×</button></h3>
+    <div style="font-weight:800;font-size:13px;margin:2px 0 6px">🎁 待领取奖励</div>${claimHtml}
+    <div style="font-weight:800;font-size:13px;margin:14px 0 6px">🔵 进行中</div>${inHtml}`);
 }
-function renderTasks(){
-  const d=KANBAN.data;
-  if(!d){
-    const s=kanbanToken(); const connected=!!(s&&s.token);
-    document.getElementById('app').innerHTML=`
-    <div class="screen">
-      <div class="screen-title">📋 看板任务（只读）</div>
-      <div class="screen-sub">在看板里把任务标记「已完成」，游戏自动发奖励。游戏只读、绝不改动你的看板。</div>
-      <div class="banner">${connected?'⏳ 正在读取看板…稍候，或点下方刷新。':'🔌 还没读到看板数据。需把本游戏部署到和看板<b>同一个 GitHub Pages 站点</b>（同源才能共享登录），并先在该站点打开过看板。'}</div>
-      <button class="btn" onclick="syncKanban(true)">🔄 刷新看板</button>
-      <div style="margin-top:14px" class="screen-sub">（离线演示：以下为示例任务，连上后会替换成你的真实任务）</div>
-      ${mockTasksHtml()}
-    </div>`;
-    return;
-  }
-  const order={inprogress:0,todo:1,done:2};
-  const tasks=[...d.tasks].sort((a,b)=>(order[a.status]-order[b.status])||(a.id-b.id));
-  const stTxt={todo:'📋待办',inprogress:'🔵进行中',done:'✅已完成'};
-  const items=tasks.map(t=>{
-    const rewarded=S.rewarded.includes(t.id);
-    return `<div class="card task proj-${projClassKey(t.project)}" style="${t.status==='done'?'opacity:.6':''}">
-      <div class="row"><span class="pill">${escapeHtml(t.project||'其他')}</span>
-        <div class="grow" style="font-weight:700;font-size:13.5px">${escapeHtml(t.title)}</div></div>
-      <div class="reward"><span class="rw">${stTxt[t.status]||t.status}</span>${t.deadline?`<span class="rw" style="background:#eaf0fb;color:#4f86c6">📅${t.deadline}</span>`:''}${rewarded?`<span class="rw" style="background:#e7f6e7;color:#3a8a3a">🎁已领奖</span>`:''}</div>
-    </div>`;
-  }).join('');
-  const totalIP=Object.values(PROJ_COUNTS).reduce((a,b)=>a+b,0);
-  document.getElementById('app').innerHTML=`
-    <div class="screen">
-      <div class="screen-title">📋 看板任务（只读）</div>
-      <div class="screen-sub">在看板里把任务拖到「已完成」，游戏就自动发奖励（⚡能量 / 稀有怪兽 / 材料）。本游戏不会改你的看板。</div>
-      <div class="banner">⚡ 进行中任务 <b>${totalIP}</b> 个 → 农场产出 ×${PROJ_MULT.toFixed(2)}　·　<span onclick="syncKanban(true)" style="color:#b9742f;cursor:pointer;font-weight:800">🔄 刷新</span></div>
-      ${items}
-    </div>`;
+function proj2label(p){ return ({'NP':'NP 投稿','ZF':'ZF Study','LH':'LH Model','Seminar':'Seminar','生活':'生活'})[p]||p; }
+function claimReal(id){
+  const t=KANBAN.data&&KANBAN.data.tasks.find(x=>x.id===id); if(!t||S.rewarded.includes(id)) return;
+  const rw=realRewardOf(t); const mon=applyReward(rw); S.rewarded.push(id);
+  rewardToast(mon,rw); checkAch(); saveGame(); openTasks();
 }
-function mockTasksHtml(){
-  return TASKS.map(t=>{
-    const done=S.doneTasks.includes(t.id); const rw=t.rw; const chips=[];
-    if(rw.energy)chips.push(`⚡+${rw.energy}`); if(rw.xp)chips.push(`✨+${rw.xp}`); if(rw.coin)chips.push(`💰+${rw.coin}`);
-    if(rw.mon){const tpl=MON_POOL.find(m=>m.key===rw.mon);chips.push(`${tpl.s}${tpl.n}`);}
-    if(rw.ing)chips.push(Object.entries(rw.ing).map(([k,v])=>`${ING[k].e}+${v}`).join(' '));
-    return `<div class="card task proj-${t.proj}" style="${done?'opacity:.55':''}">
-      <div class="row"><span class="pill">${t.proj}</span><div class="grow" style="font-weight:700;font-size:13.5px">${t.t}</div></div>
-      <div class="reward">${chips.map(c=>`<span class="rw">${c}</span>`).join('')}</div>
-      <div style="margin-top:9px">${done?`<span class="pill">✅ 已完成</span>`:`<button class="btn green" onclick="completeTask(${t.id})">✅ 标记完成（演示）</button>`}</div>
-    </div>`;
-  }).join('');
+function claimMock(id){
+  if(S.rewarded.includes('m'+id)) return;
+  const t=TASKS.find(x=>x.id===id); const rw=mockRw(t); const mon=applyReward(rw); S.rewarded.push('m'+id);
+  rewardToast(mon,rw); checkAch(); saveGame(); openTasks();
 }
-function completeTask(id){
-  if(S.doneTasks.includes(id)) return;
-  const t=TASKS.find(x=>x.id===id); const rw=t.rw;
-  S.doneTasks.push(id);
-  if(rw.energy) S.energy+=rw.energy;
-  if(rw.xp) addXp(rw.xp);
-  if(rw.coin) S.coin+=rw.coin;
-  if(rw.ing) Object.entries(rw.ing).forEach(([k,v])=>S.ing[k]=(S.ing[k]||0)+v);
-  let monMsg='';
-  if(rw.mon){ const m=giveMonster(rw.mon,true); const tpl=MON_POOL.find(x=>x.key===rw.mon); monMsg=`<div style="text-align:center;margin:6px 0;font-size:42px">${tpl.s}</div><div style="text-align:center">收服了 <b>${tpl.n}</b>（${tpl.rar}）！</div>`; }
-  if(rw.legend){
-    modal(`<h3>🏆 传说成就达成</h3>
-      <div style="text-align:center;font-size:50px">🦄📄</div>
-      <div style="text-align:center;font-weight:800;font-size:16px;margin:6px 0">递交 Nature Physics！</div>
-      ${monMsg}
-      <div style="text-align:center;color:var(--muted);font-size:13px;margin:8px 0 14px">+${rw.energy}⚡ +${rw.xp}xp，解锁传说伙伴。</div>
-      <button class="btn green" style="width:100%" onclick="closeModal()">名留青史</button>`);
-  } else if(monMsg){
-    modal(`<h3>✅ 任务完成</h3>${monMsg}
-      <div style="text-align:center;color:var(--muted);font-size:13px;margin:8px 0 14px">+${rw.energy||0}⚡ +${rw.xp||0}xp</div>
-      <button class="btn green" style="width:100%" onclick="closeModal()">收下</button>`);
-  } else {
-    toast(`✅ 完成「${t.t.slice(0,10)}…」 领取奖励！`);
-  }
-  checkAch(); renderTasks(); renderTopbar();
-}
+function markMockDone(id){ if(!S.doneTasks.includes(id)) S.doneTasks.push(id); saveGame(); openTasks(); }
 
 // ============================ 成就 ============================
 const ACHS = [
@@ -912,37 +1010,39 @@ const ACHS = [
   {id:'tower1', e:'🏰', t:'开张大吉', d:'解锁第一个菜品塔', chk:s=>s.unlockedTowers.length>=1},
   {id:'mon3', e:'👾', t:'怪兽训练家', d:'收集 3 只怪兽', chk:s=>s.monsters.length>=3},
   {id:'plot4', e:'🚜', t:'扩张农场', d:'开垦第 4 块地', chk:s=>s.plots.filter(p=>p.unlocked).length>=4},
-  {id:'task3', e:'📋', t:'高效科研', d:'完成 3 个看板任务', chk:s=>s.doneTasks.length>=3},
-  {id:'legend', e:'👑', t:'登上 Nature', d:'递交 Nature Physics', chk:s=>s.doneTasks.includes(6)},
+  {id:'task3', e:'📋', t:'高效科研', d:'领取 3 次任务奖励', chk:s=>((s.rewarded||[]).length)>=3},
+  {id:'legend', e:'👑', t:'登上 Nature', d:'递交 Nature Physics（得独角兽）', chk:s=>s.monsters.some(m=>m.key==='unicorn')},
   {id:'rich', e:'💰', t:'小有积蓄', d:'金币达到 500', chk:s=>s.coin>=500},
 ];
 function checkAch(){
-  let newly=false;
-  ACHS.forEach(a=>{ if(!S.ach[a.id] && a.chk(S)){ S.ach[a.id]=true; newly=true; toast(`🏆 成就解锁：${a.t}`); } });
-  if(newly && curTab==='ach') renderAch();
+  ACHS.forEach(a=>{ if(!S.ach[a.id] && a.chk(S)){ S.ach[a.id]=true; toast(`🏆 成就解锁：${a.t}`); } });
 }
-function renderAch(){
+function openAchievements(){
+  if(!S.achClaimed) S.achClaimed=[];
   const got=Object.keys(S.ach).length;
-  const items=ACHS.map(a=>{
-    const on=S.ach[a.id];
-    return `<div class="card ach ${on?'':'locked'}">
-      <div class="abadge">${a.e}</div>
-      <div class="grow"><div class="at">${a.t} ${on?'✅':'🔒'}</div><div class="ad">${a.d}</div></div>
-    </div>`;
+  const items=ACHS.map(a=>{ const on=S.ach[a.id]; const claimed=S.achClaimed.includes(a.id);
+    let right='';
+    if(on) right = claimed
+      ? `<span class="cap-got" title="已领取扭蛋">${gachaSVG(20)}</span>`
+      : `<button class="cap-btn" onclick="claimAch('${a.id}')" title="领取扭蛋">${gachaSVG(18)}+1</button>`;
+    return `<div class="card ach ${on?'':'locked'}"><div class="abadge">${a.e}</div>
+      <div class="grow"><div class="at">${a.t} ${on?'✅':'🔒'}</div><div class="ad">${a.d}</div></div>${right}</div>`;
   }).join('');
-  document.getElementById('app').innerHTML = `
-    <div class="screen">
-      <div class="screen-title">🏆 成就（${got}/${ACHS.length}）</div>
-      <div class="screen-sub">长期目标的高光时刻 —— 把「递交 Nature Physics」这种大事做成传说级里程碑。</div>
-      ${items}
-    </div>`;
+  modal(`<h3>🏆 成就（${got}/${ACHS.length}）<button class="x" onclick="closeModal()">×</button></h3>
+    <div class="screen-sub" style="margin-bottom:8px">每解锁一个成就可领取 1 颗扭蛋（点右侧图标领取）。</div>${items}`);
+}
+function claimAch(id){
+  if(!S.achClaimed) S.achClaimed=[];
+  if(!S.ach[id] || S.achClaimed.includes(id)) return;
+  S.achClaimed.push(id); S.energy+=1;
+  toast('领取扭蛋 +1'); saveGame(); openAchievements();
 }
 
 // ============================ 导航 / 启动 ============================
 function switchTab(name){
   curTab=name;
   document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
-  ({farm:renderFarm, kitchen:renderKitchen, monsters:renderMonsters, restaurant:renderRestaurant, tasks:renderTasks, ach:renderAch}[name])();
+  (({farm:renderFarm, kitchen:renderKitchen, monsters:renderMonsters, restaurant:renderRestaurant}[name])||renderFarm)();
 }
 document.getElementById('tabbar').addEventListener('click', e=>{
   const b=e.target.closest('.tab'); if(b) switchTab(b.dataset.tab);
@@ -978,21 +1078,18 @@ function upcomingReminders(rems){
 async function syncKanban(initial){
   let d=null;
   try{ d=await fetchKanban(); }catch(e){ if(initial) toast('看板未连接：'+e.message); }
-  if(!d){ if(curTab==='tasks') renderTasks(); return; }
+  if(!d){ return; }
   KANBAN.data=d; KANBAN.lastSync=Date.now();
   PROJ_COUNTS={};
   d.tasks.forEach(t=>{ if(t.status==='inprogress') PROJ_COUNTS[t.project]=(PROJ_COUNTS[t.project]||0)+1; });
-  PROJ_MULT = 1 + 0.08*Object.values(PROJ_COUNTS).reduce((a,b)=>a+b,0);
   EVENTS = upcomingReminders(d.reminders);
   if(!S.syncedOnce){
-    // 首次连接：把当前已完成的任务设为基线（不补发历史奖励）
+    // 首次连接：把当前已完成的任务设为基线（不把历史任务变成待领取）
     d.tasks.forEach(t=>{ if(t.status==='done' && !S.rewarded.includes(t.id)) S.rewarded.push(t.id); });
     S.syncedOnce=true;
-  } else {
-    d.tasks.forEach(t=>{ if(t.status==='done' && !S.rewarded.includes(t.id)){ S.rewarded.push(t.id); grantTaskReward(t); } });
   }
+  // 不再自动发奖：已完成且未领取的任务会出现在 📋 任务面板，由你手动「领取奖励」
   saveGame(); renderTopbar();
-  if(curTab==='tasks') renderTasks();
   if(curTab==='farm') renderFarm();
   if(curTab==='restaurant') renderRestaurant();
 }
