@@ -168,6 +168,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .rem-item .rem-info-title{font-weight:600;font-size:13.5px;color:var(--text);}
 .rem-item .rem-info-sub{font-size:11.5px;color:var(--muted);margin-top:3px;}
 .rem-item.expired{opacity:.55;}
+.rem-item.dismissed{opacity:.6;background:#f1f3f5;}
+.rem-item.dismissed .rem-info-title{color:var(--muted);font-weight:500;}
+.rem-item.dismissed .cat-dot{filter:grayscale(1);}
 .rem-item-empty{text-align:center;padding:24px 14px;color:#a0aec0;font-size:13px;}
 
 /* Reminder edit modal — conditional fields */
@@ -934,18 +937,21 @@ function renderReminderList(){
   const today = new Date(); today.setHours(0,0,0,0);
   const sorted = reminders.map(r => ({rem:r, next: nextOccurrence(r, today)}))
     .sort((a,b) => {
+      // latest date at the top; items with no date sink to the bottom
       if(!a.next && !b.next) return 0;
       if(!a.next) return 1; if(!b.next) return -1;
-      return a.next - b.next;
+      return b.next - a.next;
     });
   list.innerHTML = sorted.map(({rem, next}) => {
     const cat = rem.category || 'life';
     const expired = rem.recurrence === 'once' && !next;
+    const dismissed = isReminderDismissed(rem, today);
     const nextStr = next ? `下次 ${next.getMonth()+1}/${next.getDate()}` : '已过期';
     const meta = [recurrenceSummary(rem), nextStr];
     if(rem.time) meta.push(rem.time);
     if(rem.advanceDays) meta.push(`提前 ${rem.advanceDays}天`);
-    return `<div class="rem-item cat-${cat}${expired?' expired':''}" onclick="openReminderEdit(${rem.id})">
+    if(dismissed) meta.push('✕ 已关闭');
+    return `<div class="rem-item cat-${cat}${expired?' expired':''}${dismissed?' dismissed':''}" onclick="openReminderEdit(${rem.id})">
       <span class="cat-dot"></span>
       <div class="rem-info">
         <div class="rem-info-title">${escapeHtml(rem.title)}</div>
