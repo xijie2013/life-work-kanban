@@ -314,17 +314,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           GitHub → Settings → Developer settings → Personal access tokens → <b>classic</b> → Generate new token，scope 只勾 <code>gist</code>。
         </div>
       </div>
-      <div class="fg">
-        <label>屏幕方向</label>
-        <select class="fc" id="cfg-orientation" onchange="setOrientation(this.value)">
-          <option value="portrait">锁定竖屏</option>
-          <option value="landscape">锁定横屏</option>
-          <option value="any">跟随系统旋转</option>
-        </select>
-        <div class="field-help">
-          仅对“添加到主屏幕”安装后的 App 生效；在浏览器标签页里无法锁定方向。
-        </div>
-      </div>
       <details>
         <summary style="cursor:pointer;font-size:12px;color:var(--muted);padding:4px 0;">高级 / 故障排查</summary>
         <div style="margin-top:6px;font-size:11.5px;color:var(--muted);line-height:1.7;">
@@ -462,7 +451,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 const SETTINGS_KEY = 'kanban-sync-settings-v1';
 const CACHE_KEY    = 'kanban-cache-v2';
 const TAB_KEY      = 'kanban-mobile-tab-v1';
-const ORIENT_KEY   = 'kanban-orientation-v1';  // 'any' | 'portrait' | 'landscape'
 const SAVE_DEBOUNCE_MS = 1500;
 const GIST_FILE = 'kanban-data.json';
 
@@ -508,33 +496,20 @@ function clearSettings(){
 function openSettings(){
   document.getElementById('cfg-gist-id').value = settings ? settings.gistId : '';
   document.getElementById('cfg-token').value = settings ? settings.token : '';
-  const op = document.getElementById('cfg-orientation');
-  if(op) op.value = getOrientationPref();
   document.getElementById('settings-overlay').classList.remove('hidden');
 }
 // ---------- screen orientation ----------
-// Default to portrait. Lock only works for an installed (standalone) PWA on
-// browsers that support the Screen Orientation API; in a plain browser tab or
-// on iOS the lock call simply rejects and we ignore it.
-function getOrientationPref(){
-  try{ return localStorage.getItem(ORIENT_KEY) || 'portrait'; }catch(e){ return 'portrait'; }
-}
-function applyOrientation(pref){
-  pref = pref || getOrientationPref();
+// Always keep the app locked to portrait. The manifest enforces this for the
+// installed PWA; this JS lock is a belt-and-suspenders reinforcement. Both are
+// no-ops in a plain browser tab / on iOS, which is fine.
+function applyOrientation(){
   try{
     const so = screen.orientation;
-    if(!so) return;
-    if(pref === 'any'){
-      if(so.unlock) so.unlock();
-    } else if(so.lock){
-      const p = so.lock(pref);
-      if(p && p.catch) p.catch(() => {});  // rejects outside a standalone PWA
+    if(so && so.lock){
+      const p = so.lock('portrait');
+      if(p && p.catch) p.catch(() => {});
     }
   }catch(e){}
-}
-function setOrientation(pref){
-  try{ localStorage.setItem(ORIENT_KEY, pref); }catch(e){}
-  applyOrientation(pref);
 }
 function closeSettings(){
   document.getElementById('settings-overlay').classList.add('hidden');
