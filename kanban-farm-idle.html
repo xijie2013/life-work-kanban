@@ -204,7 +204,7 @@
    收服怪兽派工&编队 → 餐厅塔防经营。看板任务完成给高级奖励。
    ========================================================================= */
 
-const GAME_VERSION = 'v1.4 · 2026-06-01（测试模式·抬头两行·S24宽度360）';
+const GAME_VERSION = 'v1.5 · 2026-06-01（修复手机滚动到底）';
 
 // ---------- 内容定义 ----------
 const ING = {
@@ -1232,6 +1232,12 @@ window.addEventListener('beforeunload', ()=>{ saveGame(); cloudSave(true); });
 
 // Service Worker（离线缓存；file:// 下会静默失败，无妨）
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('farm-sw.js').catch(()=>{}); }
+
+// 用真实可视高度固定页面，避免移动端 100vh 误差导致底部内容被底栏遮住、滚不到底
+function fitViewport(){ document.body.style.height = window.innerHeight + 'px'; }
+window.addEventListener('resize', fitViewport);
+window.addEventListener('orientationchange', fitViewport);
+fitViewport();
 
 boot();
 </script>
