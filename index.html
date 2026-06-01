@@ -670,13 +670,24 @@ function setTab(name){
 }
 
 // ---------- domain logic ----------
-function autoPromote(){
-  const today = new Date(new Date().toDateString());
-  let changed = false;
+// Board rule (one active task per project): within each project, the first
+// not-done task (by id = creation order) is 'inprogress'; all later not-done
+// tasks are 'todo'. Done tasks are untouched. Runs on every render — so it
+// fires when a task is created, when one is moved to done (promotes the next
+// in that project), and on cloud load. Event-driven, fully client-side.
+function normalizeBoard(){
+  const groups = {};
   tasks.forEach(t => {
-    if(t.status === 'todo' && t.deadline){
-      if(new Date(t.deadline) <= today){ t.status = 'inprogress'; changed = true; }
-    }
+    const k = t.project || '';
+    (groups[k] = groups[k] || []).push(t);
+  });
+  let changed = false;
+  Object.values(groups).forEach(group => {
+    const active = group.filter(t => t.status !== 'done').sort((a, b) => a.id - b.id);
+    active.forEach((t, i) => {
+      const want = i === 0 ? 'inprogress' : 'todo';
+      if(t.status !== want){ t.status = want; changed = true; }
+    });
   });
   return changed;
 }
@@ -706,7 +717,7 @@ function escapeHtml(s){
 }
 
 function render(){
-  if(autoPromote()) scheduleSave();
+  if(normalizeBoard()) scheduleSave();
   ['todo','inprogress','done'].forEach(s => {
     let ts = tasks.filter(t => t.status === s);
     if(s !== 'done') ts.sort((a,b) => {
