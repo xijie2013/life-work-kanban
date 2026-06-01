@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>任务农场 · Kanban Farm</title>
+<link rel="manifest" href="farm-manifest.json">
+<meta name="theme-color" content="#e58a3c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<style>
+  :root{
+    --bg:#fff7ec; --panel:#fffdf8; --ink:#4a3b2a; --muted:#a8917a;
+    --line:#ecdcc4; --accent:#e58a3c; --green:#6fa84f; --green-d:#557f3b;
+    --blue:#4f86c6; --purple:#9a6fc6; --gold:#e8b23a; --red:#d2603a;
+    --shadow:0 4px 14px rgba(120,80,30,.10);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    background:linear-gradient(160deg,#fff7ec,#ffeed8);color:var(--ink);
+    max-width:760px;margin:0 auto;min-height:100vh;padding-bottom:74px;}
+  h1,h2,h3,h4{margin:0;}
+  .hidden{display:none!important;}
+
+  /* top resource bar */
+  .topbar{position:sticky;top:0;z-index:30;background:rgba(255,253,248,.92);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);padding:8px 12px;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;}
+  .res{display:flex;align-items:center;gap:4px;font-weight:700;font-size:14px;}
+  .res .ico{font-size:17px;}
+  .res small{font-weight:600;color:var(--muted);font-size:11px;}
+  .lvl-wrap{flex:1;min-width:120px;}
+  .lvl-bar{height:7px;background:#efe2cd;border-radius:6px;overflow:hidden;margin-top:3px;}
+  .lvl-fill{height:100%;background:linear-gradient(90deg,#f0c14b,#e58a3c);width:0%;transition:width .3s;}
+
+  /* tabs */
+  .tabbar{position:fixed;bottom:0;left:0;right:0;max-width:760px;margin:0 auto;display:flex;
+    background:var(--panel);border-top:1px solid var(--line);z-index:40;box-shadow:0 -2px 10px rgba(120,80,30,.06);}
+  .tab{flex:1;border:none;background:none;padding:8px 2px 7px;font-size:11px;color:var(--muted);
+    display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;font-weight:600;}
+  .tab .tico{font-size:21px;line-height:1;}
+  .tab.active{color:var(--accent);}
+  .tab.active .tico{transform:translateY(-1px);filter:drop-shadow(0 2px 3px rgba(229,138,60,.4));}
+
+  .screen{padding:12px;}
+  .screen-title{font-size:16px;font-weight:800;margin-bottom:2px;display:flex;align-items:center;gap:6px;}
+  .screen-sub{font-size:12px;color:var(--muted);margin-bottom:12px;}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:13px;margin-bottom:12px;}
+  .row{display:flex;align-items:center;gap:10px;}
+  .grow{flex:1;min-width:0;}
+  .btn{border:none;border-radius:10px;padding:8px 13px;font-weight:700;font-size:13px;cursor:pointer;
+    background:var(--accent);color:#fff;box-shadow:0 2px 6px rgba(229,138,60,.35);transition:transform .08s;}
+  .btn:active{transform:scale(.94);}
+  .btn:disabled{background:#d8c8b2;box-shadow:none;cursor:not-allowed;color:#fff;}
+  .btn.green{background:var(--green);box-shadow:0 2px 6px rgba(111,168,79,.35);}
+  .btn.blue{background:var(--blue);box-shadow:0 2px 6px rgba(79,134,198,.35);}
+  .btn.ghost{background:#f3e8d6;color:var(--ink);box-shadow:none;}
+  .btn.sm{padding:5px 10px;font-size:12px;border-radius:8px;}
+  .pill{display:inline-flex;align-items:center;gap:3px;background:#f3e8d6;border-radius:20px;padding:2px 9px;font-size:11.5px;font-weight:700;color:#7a6448;}
+
+  /* farm grid */
+  .plot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px;}
+  .plot{background:linear-gradient(160deg,#f6ead2,#efdcbc);border:1px solid #e3cfa8;border-radius:14px;
+    padding:9px 7px;text-align:center;position:relative;cursor:pointer;overflow:hidden;}
+  .plot.ready{animation:bob .9s ease-in-out infinite;border-color:var(--green);}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+  .plot .crop{font-size:34px;line-height:1.1;filter:drop-shadow(0 2px 2px rgba(0,0,0,.12));}
+  .plot .cropname{font-size:11px;font-weight:700;margin-top:1px;}
+  .plot .pbar{height:6px;background:#e0cba6;border-radius:5px;overflow:hidden;margin-top:5px;}
+  .plot .pfill{height:100%;background:linear-gradient(90deg,#8fc16a,#6fa84f);width:0%;}
+  .plot .worker{position:absolute;top:3px;right:4px;font-size:16px;}
+  .plot .lvtag{position:absolute;top:3px;left:5px;font-size:10px;font-weight:800;color:#a8835a;}
+  .plot.locked{display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);min-height:120px;
+    background:repeating-linear-gradient(45deg,#f1e6d3,#f1e6d3 8px,#ece0cb 8px,#ece0cb 16px);}
+  .plot.ready .ripe{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:800;color:var(--green-d);}
+
+  /* ingredient chips */
+  .ing-wrap{display:flex;flex-wrap:wrap;gap:6px;}
+  .ing{display:flex;align-items:center;gap:3px;background:#f6ecda;border:1px solid #ecdcc0;border-radius:9px;padding:4px 8px;font-size:13px;font-weight:700;}
+  .ing .n{color:#7a6448;font-size:12px;}
+
+  /* monster cards */
+  .mon-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px;}
+  .mon{border-radius:14px;padding:8px 6px 9px;text-align:center;position:relative;cursor:pointer;border:2px solid;background:var(--panel);}
+  .mon.r-普通{border-color:#cdbfa8;} .mon.r-稀有{border-color:#5fa9d8;box-shadow:0 0 0 2px rgba(95,169,216,.12);}
+  .mon.r-史诗{border-color:#b07fd8;box-shadow:0 0 0 2px rgba(176,127,216,.14);} .mon.r-传说{border-color:#e8b23a;box-shadow:0 0 10px rgba(232,178,58,.4);}
+  .mon .sprite{font-size:36px;line-height:1.05;}
+  .mon .mn{font-size:12px;font-weight:800;margin-top:1px;}
+  .mon .job{font-size:10px;font-weight:700;color:#fff;border-radius:20px;padding:1px 7px;display:inline-block;margin-top:3px;}
+  .job-farm{background:var(--green);} .job-cook{background:var(--accent);} .job-serve{background:var(--blue);} .job-battle{background:var(--red);} .job-idle{background:#bbb;}
+  .mon .lv{position:absolute;top:4px;left:6px;font-size:10px;font-weight:800;color:#a8835a;}
+  .mon .star{position:absolute;top:3px;right:5px;font-size:10px;}
+  .mon.sel{outline:3px solid var(--accent);outline-offset:1px;}
+
+  .stat-line{display:flex;justify-content:center;gap:7px;font-size:10px;color:var(--muted);margin-top:3px;font-weight:700;}
+
+  /* tower defense */
+  #tdCanvas{width:100%;height:auto;background:linear-gradient(#bfe3a4,#a9d488);border-radius:12px;display:block;touch-action:none;}
+  .tower-tray{display:flex;gap:8px;overflow-x:auto;padding:4px 0;}
+  .tslot{flex:0 0 auto;border:1px solid var(--line);border-radius:10px;padding:6px 9px;text-align:center;background:var(--panel);cursor:pointer;min-width:64px;}
+  .tslot.sel{outline:2px solid var(--accent);}
+  .tslot.lock{opacity:.45;filter:grayscale(.6);}
+  .tslot .ts{font-size:24px;}
+  .tslot .tn{font-size:10px;font-weight:800;}
+
+  /* tasks */
+  .task{border-left:5px solid var(--accent);}
+  .task.proj-NP{border-left-color:#e07a5f;} .task.proj-ZF{border-left-color:#4f86c6;}
+  .task.proj-LH{border-left-color:#e8a0c0;} .task.proj-Seminar{border-left-color:#9a6fc6;} .task.proj-生活{border-left-color:#6fa84f;}
+  .reward{display:flex;gap:8px;flex-wrap:wrap;margin-top:7px;}
+  .reward .rw{font-size:11.5px;font-weight:800;background:#fef0dc;border-radius:8px;padding:3px 8px;color:#b9742f;}
+
+  /* achievements */
+  .ach{display:flex;gap:11px;align-items:center;}
+  .ach .abadge{font-size:30px;width:46px;text-align:center;}
+  .ach.locked{opacity:.5;filter:grayscale(.9);}
+  .ach .at{font-weight:800;font-size:13.5px;}
+  .ach .ad{font-size:11.5px;color:var(--muted);}
+
+  /* toast + modal */
+  #toast{position:fixed;left:50%;bottom:88px;transform:translateX(-50%);z-index:80;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none;}
+  .toast{background:#4a3b2a;color:#fff;padding:8px 15px;border-radius:20px;font-size:13px;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.25);animation:pop .3s;}
+  @keyframes pop{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
+  .overlay{position:fixed;inset:0;background:rgba(60,40,20,.45);z-index:90;display:flex;align-items:center;justify-content:center;padding:18px;}
+  .modal{background:var(--panel);border-radius:18px;max-width:380px;width:100%;padding:18px;box-shadow:0 12px 40px rgba(0,0,0,.3);max-height:86vh;overflow:auto;}
+  .modal h3{font-size:16px;margin-bottom:10px;}
+  .x{float:right;border:none;background:#f3e8d6;border-radius:8px;width:28px;height:28px;font-size:16px;cursor:pointer;color:#7a6448;}
+
+  /* cooking pot */
+  .pot{background:#f6ead2;border:2px dashed #d8b98a;border-radius:14px;min-height:60px;padding:10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;}
+  .pot .ph{color:var(--muted);font-size:12px;}
+  .recipe-known{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:12.5px;}
+  .banner{background:linear-gradient(100deg,#fff2dd,#ffe7c6);border:1px solid #f0d6a8;border-radius:12px;padding:9px 12px;font-size:12.5px;color:#9a6a2a;font-weight:600;margin-bottom:12px;}
+  .offline{background:#eef6e6;border-color:#cfe6b8;color:#4d7a2e;}
+</style>
+</head>
+<body>
+
+<div class="topbar" id="topbar"></div>
+
+<div id="app"></div>
+
+<div class="tabbar" id="tabbar">
+  <button class="tab active" data-tab="farm"><span class="tico">🌱</span>农场</button>
+  <button class="tab" data-tab="kitchen"><span class="tico">🍳</span>厨房</button>
+  <button class="tab" data-tab="monsters"><span class="tico">👾</span>伙伴</button>
+  <button class="tab" data-tab="restaurant"><span class="tico">🏰</span>餐厅</button>
+  <button class="tab" data-tab="tasks"><span class="tico">📋</span>任务</button>
+  <button class="tab" data-tab="ach"><span class="tico">🏆</span>成就</button>
+</div>
+
+<div id="toast"></div>
+<div id="modalRoot"></div>
+
+<script>
+/* =========================================================================
+   任务农场 — Kanban Farm idle 原型
+   单文件 / 纯前端 / 模拟数据。核心循环：种田屯材料 → 做菜解锁塔 →
+   收服怪兽派工&编队 → 餐厅塔防经营。看板任务完成给高级奖励。
+   ========================================================================= */
+
+// ---------- 内容定义 ----------
+const ING = {
+  wheat:{e:'🌾',n:'小麦'}, tomato:{e:'🍅',n:'番茄'}, chili:{e:'🌶️',n:'辣椒'},
+  egg:{e:'🥚',n:'蛋'}, cheese:{e:'🧀',n:'奶酪'}, fish:{e:'🐟',n:'鱼'},
+  meat:{e:'🥩',n:'肉'}, herb:{e:'🌿',n:'香料'}
+};
+const ING_KEYS = Object.keys(ING);
+
+// 菜谱（手动配齐材料即可解锁对应塔）
+const RECIPES = [
+  {id:'pizza', e:'🍕', n:'披萨',   need:{wheat:3,tomato:2,cheese:2}, tower:{dmg:7, range:95, rate:55, e:'🍕', n:'披萨塔'}},
+  {id:'mxw',   e:'🍲', n:'毛血旺', need:{chili:3,fish:2,meat:2},     tower:{dmg:16,range:70, rate:90, e:'🍲', n:'毛血旺塔'}},
+  {id:'ramen', e:'🍜', n:'拉面',   need:{wheat:2,egg:2,meat:1},      tower:{dmg:5, range:130,rate:40, e:'🍜', n:'拉面塔'}},
+  {id:'sushi', e:'🍣', n:'寿司',   need:{fish:3,herb:1},             tower:{dmg:10,range:80, rate:65, e:'🍣', n:'寿司塔'}},
+  {id:'omu',   e:'🍳', n:'蛋包饭', need:{egg:3,herb:1,cheese:1},     tower:{dmg:6, range:100,rate:50, e:'🍳', n:'蛋包饭塔'}},
+];
+
+// 怪兽图鉴模板
+const MON_POOL = [
+  {key:'hamster', s:'🐹', n:'仓鼠农夫', rar:'普通', best:'farm',  base:{farm:6,cook:2,serve:3,battle:2}},
+  {key:'mush',    s:'🍄', n:'蘑菇精',   rar:'普通', best:'farm',  base:{farm:5,cook:3,serve:2,battle:3}},
+  {key:'fox',     s:'🦊', n:'狐狸大厨', rar:'稀有', best:'cook',  base:{farm:2,cook:7,serve:4,battle:3}},
+  {key:'owl',     s:'🦉', n:'博士猫头鹰',rar:'稀有', best:'cook',  base:{farm:3,cook:6,serve:3,battle:2}},
+  {key:'penguin', s:'🐧', n:'企鹅侍者', rar:'普通', best:'serve', base:{farm:2,cook:3,serve:7,battle:2}},
+  {key:'octo',    s:'🐙', n:'八爪服务生',rar:'稀有', best:'serve', base:{farm:3,cook:5,serve:6,battle:3}},
+  {key:'dragon',  s:'🐲', n:'小火龙',   rar:'史诗', best:'battle',base:{farm:2,cook:3,serve:2,battle:9}},
+  {key:'oni',     s:'👹', n:'赤鬼武者', rar:'史诗', best:'battle',base:{farm:3,cook:2,serve:2,battle:10}},
+  {key:'unicorn', s:'🦄', n:'独角兽',   rar:'传说', best:'farm',  base:{farm:9,cook:6,serve:6,battle:8}},
+];
+
+// 看板任务（模拟，镜像你的真实项目）
+const TASKS = [
+  {id:1, proj:'NP', t:'准备 outline、figures 和 extended figures', rw:{energy:3, xp:60, mon:'fox'}},
+  {id:2, proj:'ZF', t:'继续 ZF study — 分析 IR + 5000 shot 数据', rw:{energy:2, xp:45, ing:{fish:5,herb:3}}},
+  {id:3, proj:'LH', t:'检查 reduced model 物理模型', rw:{energy:2, xp:40, coin:120}},
+  {id:4, proj:'Seminar', t:'Postdoc seminar talk: zonal flows', rw:{energy:2, xp:50, mon:'owl'}},
+  {id:5, proj:'生活', t:'订 & 取 donuts', rw:{energy:1, xp:20, ing:{wheat:6,egg:4}}},
+  {id:6, proj:'NP', t:'🎯 递交 Nature Physics', rw:{energy:8, xp:200, mon:'unicorn', legend:true}},
+];
+
+const RAR_STAR = {'普通':'⭐','稀有':'⭐⭐','史诗':'⭐⭐⭐','传说':'👑'};
+
+// 已就绪的 AI 精灵图（有则用图，无则回退 emoji）
+const MON_IMG = {
+  hamster:'farm-assets/mon_hamster.png',
+  fox:'farm-assets/mon_fox.png',
+  dragon:'farm-assets/mon_dragon.png',
+};
+function monSprite(m, px){
+  px = px||36;
+  if(m && MON_IMG[m.key]) return `<img src="${MON_IMG[m.key]}" alt="" draggable="false" style="width:${px}px;height:${px}px;object-fit:contain;vertical-align:middle;filter:drop-shadow(0 2px 2px rgba(0,0,0,.15))">`;
+  return `<span style="font-size:${px}px;line-height:1">${m?m.s:''}</span>`;
+}
+
+// ---------- 游戏状态 ----------
+let S = {
+  coin:60, energy:2, xp:0, level:1,
+  ing:{wheat:4,tomato:2,chili:1,egg:2,cheese:0,fish:1,meat:1,herb:0},
+  plots:[
+    {crop:'wheat', lv:1, prog:0, worker:null, unlocked:true},
+    {crop:'tomato',lv:1, prog:0, worker:null, unlocked:true},
+    {crop:'chili', lv:1, prog:0, worker:null, unlocked:true},
+    {crop:null, unlocked:false, cost:80},
+    {crop:null, unlocked:false, cost:150},
+    {crop:null, unlocked:false, cost:300},
+  ],
+  monsters:[],            // 拥有的怪兽实例
+  unlockedTowers:[],      // 已解锁塔 id
+  cookedCount:0,
+  doneTasks:[],           // 仅离线演示用
+  rewarded:[],            // 已发过奖励的真实看板任务 id（只读联动）
+  syncedOnce:false,       // 是否完成过首次看板同步（用于建立基线，不补发历史奖励）
+  ach:{},
+  battleTeam:[],          // 怪兽 id 编队（最多4）
+  satisfaction:100,
+  lastTick:Date.now(),
+};
+let monSeq = 1;
+let curTab = 'farm';
+let selectedPotIngs = [];
+let PROJ_MULT = 1;        // 进行中任务带来的农场产出倍率
+let PROJ_COUNTS = {};     // 各项目进行中任务数
+let EVENTS = [];          // 即将到来的提醒 → 餐厅事件
+
+function giveMonster(key, silent){
+  const tpl = MON_POOL.find(m=>m.key===key);
+  if(!tpl) return null;
+  const inst = {id:monSeq++, key, s:tpl.s, n:tpl.n, rar:tpl.rar, best:tpl.best,
+    lv:1, job:'idle', stats:{...tpl.base}};
+  S.monsters.push(inst);
+  if(!silent) toast(`${tpl.s} 收服了 ${tpl.n}！`);
+  checkAch();
+  return inst;
+}
+
+// ---------- 工具 ----------
+function fmt(n){ n=Math.floor(n); if(n>=1e6)return (n/1e6).toFixed(1)+'M'; if(n>=1e3)return (n/1e3).toFixed(1)+'k'; return ''+n; }
+function toast(msg){
+  const t=document.getElementById('toast');
+  const d=document.createElement('div'); d.className='toast'; d.textContent=msg;
+  t.appendChild(d); setTimeout(()=>d.remove(),2200);
+}
+function levelNeed(lv){ return 50 + lv*lv*30; }
+function addXp(x){
+  S.xp += x;
+  while(S.xp >= levelNeed(S.level)){ S.xp -= levelNeed(S.level); S.level++; toast(`🎉 升到 Lv.${S.level}！`); }
+}
+function monById(id){ return S.monsters.find(m=>m.id===id); }
+function plotSpeed(p){
+  let base = 1 + p.lv*0.5;
+  if(p.worker){ const m=monById(p.worker); if(m) base += m.stats.farm*0.35; }
+  return base;
+}
+function plotMax(p){ return 8 + p.lv*4; }
+
+// ---------- idle tick ----------
+function tick(dtSec){
+  // 农场生长
+  S.plots.forEach(p=>{
+    if(!p.unlocked || !p.crop) return;
+    p.prog += plotSpeed(p)*dtSec*PROJ_MULT;
+    // 自动收获：满了就入库并重新开始（idle 核心）
+    while(p.prog >= 100){
+      p.prog -= 100;
+      S.ing[p.crop] = (S.ing[p.crop]||0) + 1;
+    }
+  });
+  // 餐厅被动金币（已解锁塔越多越赚）
+  if(S.unlockedTowers.length){
+    S.coin += S.unlockedTowers.length * 0.6 * dtSec * (S.satisfaction/100);
+  }
+  checkAch();
+}
+
+// 真实秒级循环
+setInterval(()=>{
+  const now=Date.now(); const dt=Math.min(3,(now-S.lastTick)/1000); S.lastTick=now;
+  tick(dt);
+  renderTopbar();
+  if(curTab==='farm') paintFarmProgress();
+}, 1000);
+
+// ---------- 顶栏 ----------
+function renderTopbar(){
+  const need=levelNeed(S.level); const pct=Math.min(100, S.xp/need*100);
+  const totalIng=ING_KEYS.reduce((a,k)=>a+(S.ing[k]||0),0);
+  document.getElementById('topbar').innerHTML = `
+    <div class="res"><span class="ico">💰</span>${fmt(S.coin)}<small>金币</small></div>
+    <div class="res"><span class="ico">⚡</span>${S.energy}<small>能量</small></div>
+    <div class="res"><span class="ico">🌾</span>${totalIng}<small>材料</small></div>
+    <div class="lvl-wrap">
+      <div class="res" style="font-size:12px">👨‍🔬 Lv.${S.level}<small>${Math.floor(S.xp)}/${need}</small></div>
+      <div class="lvl-bar"><div class="lvl-fill" style="width:${pct}%"></div></div>
+    </div>`;
+}
+
+// ============================ 农场 ============================
+function renderFarm(){
+  const cropPick = ING_KEYS.map(k=>`<option value="${k}">${ING[k].e} ${ING[k].n}</option>`).join('');
+  let plots = S.plots.map((p,i)=>{
+    if(!p.unlocked){
+      return `<div class="plot locked" onclick="buyPlot(${i})">
+        <div style="font-size:26px">➕</div><div style="font-size:11px;font-weight:800">开垦新地</div>
+        <div class="pill" style="margin-top:5px">💰 ${p.cost}</div></div>`;
+    }
+    if(!p.crop){
+      return `<div class="plot" onclick="plantPrompt(${i})">
+        <div class="crop">🟫</div><div class="cropname">空地·点击播种</div></div>`;
+    }
+    const ready = p.prog>=100;
+    const wm = p.worker? monById(p.worker) : null;
+    return `<div class="plot ${ready?'ready':''}" data-plot="${i}" onclick="tapPlot(${i})">
+      <div class="lvtag">Lv${p.lv}</div>
+      ${wm?`<div class="worker" title="打工怪兽">${monSprite(wm,22)}</div>`:''}
+      <div class="crop">${ING[p.crop].e}</div>
+      <div class="cropname">${ING[p.crop].n}</div>
+      <div class="pbar"><div class="pfill" style="width:${Math.min(100,p.prog)}%"></div></div>
+    </div>`;
+  }).join('');
+
+  const ingChips = ING_KEYS.map(k=>`<div class="ing">${ING[k].e}<span class="n">${ING[k].n}</span> ${fmt(S.ing[k]||0)}</div>`).join('');
+
+  const totalIP=Object.values(PROJ_COUNTS).reduce((a,b)=>a+b,0);
+  const projPanel = KANBAN.data ? `<div class="card">
+      <div class="row" style="margin-bottom:8px"><div class="grow"><b>🔬 项目能量</b></div>
+        <span class="pill">进行中 ${totalIP} → 产出 ×${PROJ_MULT.toFixed(2)}</span></div>
+      <div class="ing-wrap">${Object.keys(PROJ_REWARD).map(p=>`<div class="ing">${p.replace(' 投稿','').replace(' Study','').replace(' Model','')}<span class="n">进行中</span> ${PROJ_COUNTS[p]||0}</div>`).join('')}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px">看板里「进行中」的任务越多，农场产出越快。去推进真实工作吧 💪</div>
+    </div>` : '';
+
+  document.getElementById('app').innerHTML = `
+    <div class="screen">
+      <div class="screen-title">🌱 农场</div>
+      <div class="screen-sub">地块会随时间自动产出材料（idle 核心）。派怪兽打工可加速，关掉也在长。</div>
+      <div class="banner">💡 点「成熟」的地块手动收一波有额外手感；不点也会自动入库。给地块派农夫系怪兽、升级地块都能提速。</div>
+      <div class="card">
+        <div class="row" style="margin-bottom:9px">
+          <div class="grow"><b>我的田地</b></div>
+          <span class="pill">速度随怪兽 farm 值提升</span>
+        </div>
+        <div class="plot-grid">${plots}</div>
+      </div>
+      ${projPanel}
+      <div class="card">
+        <div style="font-weight:800;margin-bottom:8px">📦 材料仓库</div>
+        <div class="ing-wrap">${ingChips}</div>
+      </div>
+    </div>`;
+}
+function paintFarmProgress(){
+  S.plots.forEach((p,i)=>{
+    const el=document.querySelector(`.plot[data-plot="${i}"]`); if(!el||!p.crop)return;
+    const fill=el.querySelector('.pfill'); if(fill) fill.style.width=Math.min(100,p.prog)+'%';
+    const ready=p.prog>=100;
+    el.classList.toggle('ready', ready);
+  });
+}
+function tapPlot(i){
+  const p=S.plots[i]; if(!p.crop) return;
+  if(p.prog>=100){
+    let got=0; while(p.prog>=100){p.prog-=100; S.ing[p.crop]=(S.ing[p.crop]||0)+1; got++;}
+    toast(`${ING[p.crop].e} 收获 +${got} ${ING[p.crop].n}`);
+    renderTopbar(); paintFarmProgress();
+  } else {
+    openPlotManage(i);
+  }
+}
+function plantPrompt(i){ openPlotManage(i, true); }
+function openPlotManage(i, planting){
+  const p=S.plots[i];
+  const cropOpts = ING_KEYS.map(k=>`<option value="${k}" ${p.crop===k?'selected':''}>${ING[k].e} ${ING[k].n}</option>`).join('');
+  const farmers = S.monsters.filter(m=>m.job==='idle'||m.job==='farm'||m.worker===undefined);
+  const wopts = `<option value="">— 不派 —</option>` + S.monsters.map(m=>
+    `<option value="${m.id}" ${p.worker===m.id?'selected':''}>${m.s} ${m.n}（farm ${m.stats.farm}）</option>`).join('');
+  const upCost = p.lv*60;
+  modal(`<h3>🌾 地块 ${i+1} <button class="x" onclick="closeModal()">×</button></h3>
+    <div style="font-size:13px;margin-bottom:10px;color:var(--muted)">设置作物、派打工怪兽，或升级提产。</div>
+    <div style="font-weight:700;font-size:13px;margin-bottom:4px">种什么</div>
+    <select id="m-crop" class="btn ghost" style="width:100%;margin-bottom:12px;padding:9px">${cropOpts}</select>
+    <div style="font-weight:700;font-size:13px;margin-bottom:4px">派谁打工</div>
+    <select id="m-worker" class="btn ghost" style="width:100%;margin-bottom:14px;padding:9px">${wopts}</select>
+    <div class="row" style="gap:8px">
+      <button class="btn green grow" onclick="savePlot(${i})">✅ 确定</button>
+      <button class="btn blue" onclick="upgradePlot(${i})">⬆ 升级 Lv${p.lv+1}（💰${upCost}）</button>
+    </div>`);
+}
+function savePlot(i){
+  const p=S.plots[i];
+  const crop=document.getElementById('m-crop').value;
+  const w=document.getElementById('m-worker').value;
+  p.crop=crop;
+  // 解除该怪兽在别处的派工
+  if(w){ S.monsters.forEach(m=>{ if(m.id==w){} }); S.plots.forEach(pp=>{ if(pp!==p && pp.worker==w) pp.worker=null; });
+    const m=monById(+w); if(m) m.job='farm'; p.worker=+w; }
+  else { if(p.worker){ const m=monById(p.worker); if(m && m.job==='farm') m.job='idle'; } p.worker=null; }
+  closeModal(); renderFarm(); renderTopbar();
+}
+function upgradePlot(i){
+  const p=S.plots[i]; const cost=p.lv*60;
+  if(S.coin<cost){ toast('金币不够 💰'); return; }
+  S.coin-=cost; p.lv++; toast(`地块升到 Lv${p.lv}，产出更快！`);
+  closeModal(); renderFarm(); renderTopbar();
+}
+function buyPlot(i){
+  const p=S.plots[i];
+  if(S.coin<p.cost){ toast('金币不够，去餐厅经营赚钱 💰'); return; }
+  S.coin-=p.cost; p.unlocked=true; p.crop=null; p.lv=1; p.prog=0; p.worker=null;
+  toast('🌱 开垦了一块新地！'); renderFarm(); renderTopbar(); checkAch();
+}
+
+// ============================ 厨房 ============================
+function renderKitchen(){
+  const pot = selectedPotIngs.length
+    ? selectedPotIngs.map((k,idx)=>`<div class="ing" onclick="removePot(${idx})">${ING[k].e}<span class="n">${ING[k].n}</span> ✕</div>`).join('')
+    : `<div class="ph">点下面的材料丢进锅里，自己配菜谱 →</div>`;
+
+  const palette = ING_KEYS.map(k=>{
+    const have=S.ing[k]||0;
+    return `<div class="ing" style="cursor:pointer;${have<=0?'opacity:.4':''}" onclick="addPot('${k}')">
+      ${ING[k].e}<span class="n">${ING[k].n}</span> ${fmt(have)}</div>`;
+  }).join('');
+
+  const known = RECIPES.map(r=>{
+    const got=S.unlockedTowers.includes(r.id);
+    const needStr=Object.entries(r.need).map(([k,v])=>`${ING[k].e}${v}`).join(' ');
+    return `<div class="recipe-known">
+      <div style="font-size:24px">${r.e}</div>
+      <div class="grow"><b>${r.n}</b> <span style="color:var(--muted);font-size:11px">${needStr}</span></div>
+      ${got?`<span class="pill">🏰 已解锁${r.tower.n}</span>`:`<span class="pill" style="opacity:.6">未发现</span>`}
+    </div>`;
+  }).join('');
+
+  document.getElementById('app').innerHTML = `
+    <div class="screen">
+      <div class="screen-title">🍳 厨房</div>
+      <div class="screen-sub">手动把材料丢进锅、配出菜谱。配对已知菜谱即可解锁对应的「菜品塔」用于餐厅经营。</div>
+      <div class="card">
+        <div style="font-weight:800;margin-bottom:8px">🍲 料理台</div>
+        <div class="pot" id="pot">${pot}</div>
+        <div class="row" style="margin-top:10px;gap:8px">
+          <button class="btn green grow" onclick="cook()">🔥 开火烹饪</button>
+          <button class="btn ghost" onclick="selectedPotIngs=[];renderKitchen()">清空</button>
+        </div>
+        <div style="font-weight:700;font-size:12px;margin:12px 0 6px;color:var(--muted)">仓库材料（点击加入）</div>
+        <div class="ing-wrap">${palette}</div>
+      </div>
+      <div class="card">
+        <div style="font-weight:800;margin-bottom:4px">📖 菜谱图鉴</div>
+        ${known}
+      </div>
+    </div>`;
+}
+function addPot(k){
+  if((S.ing[k]||0) - selectedPotIngs.filter(x=>x===k).length <= 0){ toast('这个材料不够了'); return; }
+  if(selectedPotIngs.length>=6){ toast('锅满了'); return; }
+  selectedPotIngs.push(k); renderKitchen();
+}
+function removePot(idx){ selectedPotIngs.splice(idx,1); renderKitchen(); }
+function cook(){
+  if(!selectedPotIngs.length){ toast('锅是空的'); return; }
+  // 统计
+  const cnt={}; selectedPotIngs.forEach(k=>cnt[k]=(cnt[k]||0)+1);
+  // 匹配菜谱（材料种类和数量完全一致）
+  const match = RECIPES.find(r=>{
+    const rk=Object.keys(r.need);
+    if(rk.length!==Object.keys(cnt).length) return false;
+    return rk.every(k=>cnt[k]===r.need[k]);
+  });
+  // 扣材料
+  Object.entries(cnt).forEach(([k,v])=>{ S.ing[k]-=v; });
+  selectedPotIngs=[]; S.cookedCount++;
+  if(match){
+    S.coin += 40; addXp(25);
+    if(!S.unlockedTowers.includes(match.id)){
+      S.unlockedTowers.push(match.id);
+      modal(`<h3>✨ 发现新菜谱！</h3>
+        <div style="text-align:center;font-size:54px;margin:6px 0">${match.e}</div>
+        <div style="text-align:center;font-weight:800;font-size:17px">${match.n}</div>
+        <div style="text-align:center;color:var(--muted);font-size:13px;margin:8px 0 14px">
+          解锁了 🏰 <b>${match.tower.n}</b>，去餐厅塔防里布防吧！</div>
+        <button class="btn green" style="width:100%" onclick="closeModal()">太香了</button>`);
+    } else {
+      toast(`${match.e} 又做了一份${match.n}（+40💰 +25xp）`);
+    }
+  } else {
+    S.coin += 8; addXp(5);
+    toast('🤔 做出了一盘「神秘黑暗料理」… +8💰');
+  }
+  checkAch(); renderKitchen(); renderTopbar();
+}
+
+// ============================ 伙伴（怪兽） ============================
+let monMode='manage'; // manage | team
+function renderMonsters(){
+  const cards = S.monsters.map(m=>{
+    const inTeam=S.battleTeam.includes(m.id);
+    return `<div class="mon r-${m.rar} ${monMode==='team'&&inTeam?'sel':''}" onclick="tapMon(${m.id})">
+      <div class="lv">Lv${m.lv}</div><div class="star">${RAR_STAR[m.rar]}</div>
+      <div class="sprite">${monSprite(m,44)}</div>
+      <div class="mn">${m.n}</div>
+      <span class="job job-${m.job}">${jobName(m.job)}</span>
+      <div class="stat-line">🌾${m.stats.farm} 🍳${m.stats.cook} 🍽${m.stats.serve} ⚔${m.stats.battle}</div>
+    </div>`;
+  }).join('') || `<div style="color:var(--muted);font-size:13px;padding:20px;text-align:center">还没有伙伴。去任务里完成工作，或在野外打怪收服！</div>`;
+
+  const teamSlots = [0,1,2,3].map(i=>{
+    const id=S.battleTeam[i]; const m=id?monById(id):null;
+    return `<div class="mon" style="${m?'':'opacity:.5;border-style:dashed'}">
+      <div class="sprite">${m?monSprite(m,40):'➕'}</div><div class="mn">${m?m.n:'空位'}</div>
+      ${m?`<div class="stat-line">⚔ ${m.stats.battle}</div>`:''}</div>`;
+  }).join('');
+
+  document.getElementById('app').innerHTML = `
+    <div class="screen">
+      <div class="screen-title">👾 伙伴怪兽</div>
+      <div class="screen-sub">收服的怪兽可以派去种田/做菜/当服务员，也能编入队伍卡组去打怪。</div>
+      <div class="row" style="gap:8px;margin-bottom:12px">
+        <button class="btn ${monMode==='manage'?'':'ghost'} grow" onclick="monMode='manage';renderMonsters()">🛠 派工管理</button>
+        <button class="btn ${monMode==='team'?'':'ghost'} grow" onclick="monMode='team';renderMonsters()">⚔ 编队打怪</button>
+      </div>
+      ${monMode==='team'?`
+        <div class="card">
+          <div style="font-weight:800;margin-bottom:8px">我的出战队（点下方卡片加入/移出，最多4）</div>
+          <div class="mon-grid" style="grid-template-columns:repeat(4,1fr)">${teamSlots}</div>
+          <button class="btn green" style="width:100%;margin-top:12px" onclick="startBattle()">🗡 出发打野怪</button>
+        </div>`:''}
+      <div class="card">
+        <div style="font-weight:800;margin-bottom:10px">📒 图鉴（${S.monsters.length}/${MON_POOL.length} 种）</div>
+        <div class="mon-grid">${cards}</div>
+      </div>
+    </div>`;
+}
+function jobName(j){ return {farm:'种田',cook:'做菜',serve:'服务',battle:'战斗',idle:'待命'}[j]||j; }
+function tapMon(id){
+  if(monMode==='team'){
+    const i=S.battleTeam.indexOf(id);
+    if(i>=0) S.battleTeam.splice(i,1);
+    else { if(S.battleTeam.length>=4){toast('队伍满了（4）');return;} S.battleTeam.push(id); }
+    renderMonsters(); return;
+  }
+  const m=monById(id);
+  modal(`<h3>${m.s} ${m.n} <button class="x" onclick="closeModal()">×</button></h3>
+    <div style="text-align:center">${monSprite(m,84)}</div>
+    <div style="text-align:center;margin-bottom:8px">${RAR_STAR[m.rar]} · Lv${m.lv} · 擅长${jobName(m.best)}</div>
+    <div class="stat-line" style="font-size:13px;justify-content:center;margin-bottom:14px">🌾种田 ${m.stats.farm} ｜ 🍳做菜 ${m.stats.cook} ｜ 🍽服务 ${m.stats.serve} ｜ ⚔战斗 ${m.stats.battle}</div>
+    <div style="font-weight:700;font-size:13px;margin-bottom:6px">指派工作</div>
+    <div class="row" style="flex-wrap:wrap;gap:6px;margin-bottom:14px">
+      ${['farm','cook','serve','idle'].map(j=>`<button class="btn ${m.job===j?'':'ghost'} sm" onclick="setJob(${id},'${j}')">${jobName(j)}</button>`).join('')}
+    </div>
+    <button class="btn blue" style="width:100%" onclick="trainMon(${id})">💪 训练升级（💰${m.lv*50}）</button>`);
+}
+function setJob(id,j){ const m=monById(id); m.job=j; if(j!=='farm'){S.plots.forEach(p=>{if(p.worker===id)p.worker=null;});} closeModal(); renderMonsters(); }
+function trainMon(id){
+  const m=monById(id); const cost=m.lv*50;
+  if(S.coin<cost){ toast('金币不够'); return; }
+  S.coin-=cost; m.lv++; Object.keys(m.stats).forEach(k=>m.stats[k]+=1); m.stats[m.best]+=1;
+  toast(`${m.s} ${m.n} 升到 Lv${m.lv}！`); closeModal(); renderMonsters(); renderTopbar();
+}
+
+// 简易自动战斗
+const WILD = [
+  {s:'🦝',n:'浣熊小偷',hp:30,atk:5,drop:'mush'},
+  {s:'🐗',n:'野猪',hp:50,atk:8,drop:'meat'},
+  {s:'🦂',n:'毒蝎',hp:45,atk:11,drop:'herb'},
+  {s:'🐉',n:'青龙（精英）',hp:120,atk:16,drop:'dragon',rare:true},
+];
+function startBattle(){
+  if(!S.battleTeam.length){ toast('先编入至少 1 只怪兽'); return; }
+  const foe = WILD[Math.floor(Math.random()*WILD.length)];
+  let foeHp=foe.hp, foeMax=foe.hp;
+  const team=S.battleTeam.map(monById);
+  let teamPow=team.reduce((a,m)=>a+m.stats.battle+m.lv*1.5,0);
+  let log=[]; let teamHp=team.length*30, teamMax=teamHp;
+  // 回合模拟
+  for(let r=0;r<12 && foeHp>0 && teamHp>0;r++){
+    foeHp -= teamPow*(0.7+Math.random()*0.6);
+    if(foeHp>0) teamHp -= foe.atk*(0.7+Math.random()*0.6);
+  }
+  const win = foeHp<=0;
+  if(win){
+    const coinGain=40+foeMax; S.coin+=coinGain; addXp(30);
+    let extra='';
+    if(foe.rare || Math.random()<0.5){
+      // 掉落怪兽或材料
+      if(foe.drop && MON_POOL.find(m=>m.key===foe.drop) && (foe.rare||Math.random()<0.4)){
+        giveMonster(foe.drop, true); extra=`，收服了新怪兽！`;
+      } else { S.ing[foe.drop]=(S.ing[foe.drop]||0)+3; extra=`，掉落 ${ING[foe.drop]?ING[foe.drop].e+'×3':''}`; }
+    }
+    S.monsters.forEach(m=>{ if(S.battleTeam.includes(m.id)) m.lv+=0; });
+    modal(`<h3>🎉 战斗胜利</h3>
+      <div style="text-align:center;font-size:46px">${foe.s}➡️💥</div>
+      <div style="text-align:center;margin:8px 0">击败了 <b>${foe.n}</b><br>+${coinGain}💰 +30xp${extra}</div>
+      <button class="btn green" style="width:100%" onclick="closeModal();renderMonsters()">收工</button>`);
+  } else {
+    S.satisfaction=Math.max(0,S.satisfaction-5);
+    modal(`<h3>😵 战斗失利</h3>
+      <div style="text-align:center;font-size:46px">${foe.s}</div>
+      <div style="text-align:center;margin:8px 0"><b>${foe.n}</b> 太强了！练练级、升升怪兽再来。</div>
+      <button class="btn ghost" style="width:100%" onclick="closeModal()">撤退</button>`);
+  }
+  checkAch(); renderTopbar();
+}
+
+// ============================ 餐厅塔防 ============================
+let td=null;
+function renderRestaurant(){
+  const trays = RECIPES.map(r=>{
+    const got=S.unlockedTowers.includes(r.id);
+    return `<div class="tslot ${got?'':'lock'}" data-tower="${r.id}" onclick="${got?`selTower('${r.id}')`:`toast('去厨房做出${r.n}来解锁')`}">
+      <div class="ts">${r.tower.e}</div><div class="tn">${r.tower.n}</div>
+      <div style="font-size:9px;color:var(--muted)">⚔${r.tower.dmg}</div></div>`;
+  }).join('');
+  const evHtml = (EVENTS&&EVENTS.length) ? `<div class="card">
+      <div style="font-weight:800;margin-bottom:8px">🔔 今日来客预告 <span class="pill">来自看板提醒</span></div>
+      ${EVENTS.slice(0,6).map(e=>`<div class="recipe-known">
+        <div style="font-size:20px">${({work:'💼',life:'🏠',research:'🔬',meeting:'🤝'}[e.cat]||'📌')}</div>
+        <div class="grow"><b>${escapeHtml(e.title)}</b> <span style="color:var(--muted);font-size:11px">${e.days===0?'今天':(e.days+'天后')}${e.time?' · '+e.time:''}</span></div>
+        <span class="pill">预约</span></div>`).join('')}
+    </div>` : '';
+  document.getElementById('app').innerHTML = `
+    <div class="screen">
+      <div class="screen-title">🏰 餐厅经营 · 塔防</div>
+      <div class="screen-sub">顾客是路过的小怪兽，用做出来的「菜品塔」招待（击退）它们赚金币。先选塔，再点绿地空位放置。</div>
+      ${evHtml}
+      <div class="card">
+        <div class="row" style="margin-bottom:8px">
+          <div class="grow"><b>满意度</b> <span id="satTxt">${Math.round(S.satisfaction)}%</span></div>
+          <button class="btn green sm" onclick="startWave()">🔔 开始营业（来客）</button>
+        </div>
+        <canvas id="tdCanvas" width="600" height="280"></canvas>
+        <div style="font-weight:700;font-size:12px;margin:10px 0 5px;color:var(--muted)">选择菜品塔放置</div>
+        <div class="tower-tray">${trays}</div>
+      </div>
+    </div>`;
+  initTD();
+}
+function selTower(id){
+  document.querySelectorAll('.tslot').forEach(e=>e.classList.remove('sel'));
+  const el=document.querySelector(`.tslot[data-tower="${id}"]`); if(el) el.classList.add('sel');
+  td.selTower=id; toast('已选塔，点画布上的绿色空位放置');
+}
+function initTD(){
+  const cv=document.getElementById('tdCanvas'); if(!cv) return;
+  const ctx=cv.getContext('2d');
+  // 路径点（顾客从左排队进店）
+  const path=[{x:0,y:90},{x:180,y:90},{x:180,y:200},{x:430,y:200},{x:430,y:90},{x:600,y:90}];
+  // 放塔点
+  const slots=[{x:90,y:150},{x:180,y:140},{x:300,y:140},{x:300,y:250-110},{x:430,y:150},{x:520,y:200}];
+  td={ctx,cv,path,slots,selTower:null,towers:[],enemies:[],shots:[],wave:0,running:false,raf:null};
+  cv.onclick=(e)=>{
+    const rect=cv.getBoundingClientRect(); const sx=cv.width/rect.width, sy=cv.height/rect.height;
+    const mx=(e.clientX-rect.left)*sx, my=(e.clientY-rect.top)*sy;
+    // 找最近空 slot
+    let hit=-1,best=1e9;
+    td.slots.forEach((s,i)=>{ const d=Math.hypot(s.x-mx,s.y-my); if(d<32 && d<best && !td.towers.find(t=>t.slot===i)){best=d;hit=i;} });
+    if(hit>=0){
+      if(!td.selTower){ toast('先在下方选一个菜品塔'); return; }
+      const r=RECIPES.find(x=>x.id===td.selTower);
+      td.towers.push({slot:hit,x:td.slots[hit].x,y:td.slots[hit].y,...r.tower,cd:0,id:r.id});
+      toast(`放置了 ${r.tower.n}`);
+    }
+  };
+  drawTD();
+}
+function startWave(){
+  if(!td){ return; }
+  if(!td.towers.length){ toast('先放至少一个菜品塔再营业'); }
+  td.wave++;
+  const n=4+td.wave*2;
+  for(let i=0;i<n;i++){
+    const t=WILD[Math.floor(Math.random()*3)];
+    td.enemies.push({s:t.s,hp:18+td.wave*6,max:18+td.wave*6,seg:0,t:-i*0.6,spd:34+td.wave*2});
+  }
+  if(!td.running){ td.running=true; td.last=performance.now(); loopTD(); }
+  toast(`第 ${td.wave} 波顾客上门！`);
+}
+function loopTD(){
+  const now=performance.now(); const dt=Math.min(0.05,(now-(td.last||now))/1000); td.last=now;
+  stepTD(dt); drawTD();
+  if(td.enemies.length || td.shots.length){ td.raf=requestAnimationFrame(loopTD); }
+  else { td.running=false; }
+}
+function pathPos(seg,frac){
+  const a=td.path[seg], b=td.path[seg+1];
+  return {x:a.x+(b.x-a.x)*frac, y:a.y+(b.y-a.y)*frac};
+}
+function stepTD(dt){
+  // 敌人沿路径
+  td.enemies.forEach(en=>{
+    if(en.t<0){ en.t+=dt; return; }
+    let move=en.spd*dt;
+    while(move>0 && en.seg<td.path.length-1){
+      const a=td.path[en.seg], b=td.path[en.seg+1];
+      const segLen=Math.hypot(b.x-a.x,b.y-a.y);
+      en.dist=(en.dist||0)+move;
+      if(en.dist>=segLen){ move=en.dist-segLen; en.dist=0; en.seg++; }
+      else move=0;
+    }
+    const a=td.path[Math.min(en.seg,td.path.length-2)];
+    const b=td.path[Math.min(en.seg+1,td.path.length-1)];
+    const segLen=Math.hypot(b.x-a.x,b.y-a.y)||1; const f=Math.min(1,(en.dist||0)/segLen);
+    en.x=a.x+(b.x-a.x)*f; en.y=a.y+(b.y-a.y)*f;
+    if(en.seg>=td.path.length-1){ en.gone=true; }
+  });
+  // 到店未被招待 → 满意度下降
+  td.enemies.filter(e=>e.gone).forEach(()=>{ S.satisfaction=Math.max(0,S.satisfaction-2); });
+  td.enemies=td.enemies.filter(e=>!e.gone && e.hp>0);
+  // 塔开火
+  td.towers.forEach(t=>{
+    t.cd-=dt*1000;
+    if(t.cd<=0){
+      const tgt=td.enemies.filter(e=>e.t>=0 && Math.hypot(e.x-t.x,e.y-t.y)<t.range).sort((a,b)=>b.seg-a.seg)[0];
+      if(tgt){ td.shots.push({x:t.x,y:t.y,tx:tgt,dmg:t.dmg,e:t.e}); t.cd=t.rate; }
+    }
+  });
+  // 子弹
+  td.shots.forEach(sh=>{
+    if(!sh.tx || sh.tx.hp<=0){ sh.dead=true; return; }
+    const dx=sh.tx.x-sh.x, dy=sh.tx.y-sh.y, d=Math.hypot(dx,dy);
+    if(d<10){ sh.tx.hp-=sh.dmg; sh.dead=true;
+      if(sh.tx.hp<=0){ S.coin+=8; S.satisfaction=Math.min(100,S.satisfaction+1); addXp(2); }
+    } else { sh.x+=dx/d*420*dt; sh.y+=dy/d*420*dt; }
+  });
+  td.shots=td.shots.filter(s=>!s.dead);
+  const st=document.getElementById('satTxt'); if(st) st.textContent=Math.round(S.satisfaction)+'%';
+}
+function drawTD(){
+  const {ctx,cv}=td; ctx.clearRect(0,0,cv.width,cv.height);
+  // 草地纹理
+  ctx.fillStyle='#a9d488'; ctx.fillRect(0,0,cv.width,cv.height);
+  // 路径
+  ctx.strokeStyle='#d9c08a'; ctx.lineWidth=26; ctx.lineJoin='round'; ctx.lineCap='round';
+  ctx.beginPath(); td.path.forEach((p,i)=> i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)); ctx.stroke();
+  ctx.strokeStyle='#c8ab6e'; ctx.lineWidth=2; ctx.setLineDash([6,8]);
+  ctx.beginPath(); td.path.forEach((p,i)=> i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)); ctx.stroke(); ctx.setLineDash([]);
+  // 店门
+  ctx.font='26px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('🏪', 588, 90);
+  // slot 空位
+  td.slots.forEach((s,i)=>{ if(!td.towers.find(t=>t.slot===i)){ ctx.fillStyle='rgba(255,255,255,.35)';
+    ctx.beginPath(); ctx.arc(s.x,s.y,16,0,7); ctx.fill(); ctx.fillStyle='#5c8a3a'; ctx.font='13px sans'; ctx.fillText('+',s.x,s.y); } });
+  // 塔
+  td.towers.forEach(t=>{ ctx.font='30px serif'; ctx.fillText(t.e,t.x,t.y);
+    ctx.strokeStyle='rgba(255,255,255,.18)'; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(t.x,t.y,t.range,0,7); ctx.stroke(); });
+  // 敌人
+  td.enemies.forEach(en=>{ if(en.t<0||en.x==null)return; ctx.font='24px serif'; ctx.fillText(en.s,en.x,en.y);
+    ctx.fillStyle='#c0392b'; ctx.fillRect(en.x-12,en.y-18,24,4);
+    ctx.fillStyle='#27ae60'; ctx.fillRect(en.x-12,en.y-18,24*Math.max(0,en.hp/en.max),4); });
+  // 子弹
+  td.shots.forEach(sh=>{ ctx.font='15px serif'; ctx.fillText(sh.e,sh.x,sh.y); });
+}
+
+// ============================ 任务（看板只读联动） ============================
+function projClassKey(p){ return ({'NP 投稿':'NP','ZF Study':'ZF','LH Model':'LH','Seminar':'Seminar','生活':'生活'})[p]||'NP'; }
+const PROJ_REWARD = {
+  'NP 投稿':  {energy:3, xp:60, coin:80, mon:['fox','owl']},
+  'ZF Study': {energy:2, xp:45, ing:{fish:5,herb:3}},
+  'LH Model': {energy:2, xp:40, coin:120},
+  'Seminar':  {energy:2, xp:50, mon:['owl']},
+  '生活':      {energy:1, xp:20, ing:{wheat:6,egg:4}},
+};
+function grantTaskReward(t){
+  const legend=/Nature Physics/i.test(t.title||'');
+  const rw=PROJ_REWARD[t.project]||{energy:1,xp:25,coin:40};
+  S.energy+=rw.energy||0; addXp(rw.xp||0); if(rw.coin)S.coin+=rw.coin;
+  if(rw.ing)Object.entries(rw.ing).forEach(([k,v])=>S.ing[k]=(S.ing[k]||0)+v);
+  let monGot=null;
+  if(legend) monGot=giveMonster('unicorn',true);
+  else if(rw.mon && Math.random()<0.5) monGot=giveMonster(rw.mon[Math.floor(Math.random()*rw.mon.length)],true);
+  if(legend){
+    modal(`<h3>🏆 传说成就达成！</h3>
+      <div style="text-align:center">${monGot?monSprite(monGot,84):'🦄'}</div>
+      <div style="text-align:center;font-weight:800;margin:6px 0">${escapeHtml(t.title)}</div>
+      <div style="text-align:center;color:var(--muted);font-size:13px;margin:8px 0 14px">+${rw.energy}⚡ +${rw.xp}xp，传说伙伴加入队伍！</div>
+      <button class="btn green" style="width:100%" onclick="closeModal()">名留青史</button>`);
+  } else {
+    toast(`✅「${(t.title||'').slice(0,12)}」完成！+${rw.energy}⚡ +${rw.xp}xp${monGot?' '+monGot.s:''}`);
+  }
+}
+function renderTasks(){
+  const d=KANBAN.data;
+  if(!d){
+    const s=kanbanToken(); const connected=!!(s&&s.token);
+    document.getElementById('app').innerHTML=`
+    <div class="screen">
+      <div class="screen-title">📋 看板任务（只读）</div>
+      <div class="screen-sub">在看板里把任务标记「已完成」，游戏自动发奖励。游戏只读、绝不改动你的看板。</div>
+      <div class="banner">${connected?'⏳ 正在读取看板…稍候，或点下方刷新。':'🔌 还没读到看板数据。需把本游戏部署到和看板<b>同一个 GitHub Pages 站点</b>（同源才能共享登录），并先在该站点打开过看板。'}</div>
+      <button class="btn" onclick="syncKanban(true)">🔄 刷新看板</button>
+      <div style="margin-top:14px" class="screen-sub">（离线演示：以下为示例任务，连上后会替换成你的真实任务）</div>
+      ${mockTasksHtml()}
+    </div>`;
+    return;
+  }
+  const order={inprogress:0,todo:1,done:2};
+  const tasks=[...d.tasks].sort((a,b)=>(order[a.status]-order[b.status])||(a.id-b.id));
+  const stTxt={todo:'📋待办',inprogress:'🔵进行中',done:'✅已完成'};
+  const items=tasks.map(t=>{
+    const rewarded=S.rewarded.includes(t.id);
+    return `<div class="card task proj-${projClassKey(t.project)}" style="${t.status==='done'?'opacity:.6':''}">
+      <div class="row"><span class="pill">${escapeHtml(t.project||'其他')}</span>
+        <div class="grow" style="font-weight:700;font-size:13.5px">${escapeHtml(t.title)}</div></div>
+      <div class="reward"><span class="rw">${stTxt[t.status]||t.status}</span>${t.deadline?`<span class="rw" style="background:#eaf0fb;color:#4f86c6">📅${t.deadline}</span>`:''}${rewarded?`<span class="rw" style="background:#e7f6e7;color:#3a8a3a">🎁已领奖</span>`:''}</div>
+    </div>`;
+  }).join('');
+  const totalIP=Object.values(PROJ_COUNTS).reduce((a,b)=>a+b,0);
+  document.getElementById('app').innerHTML=`
+    <div class="screen">
+      <div class="screen-title">📋 看板任务（只读）</div>
+      <div class="screen-sub">在看板里把任务拖到「已完成」，游戏就自动发奖励（⚡能量 / 稀有怪兽 / 材料）。本游戏不会改你的看板。</div>
+      <div class="banner">⚡ 进行中任务 <b>${totalIP}</b> 个 → 农场产出 ×${PROJ_MULT.toFixed(2)}　·　<span onclick="syncKanban(true)" style="color:#b9742f;cursor:pointer;font-weight:800">🔄 刷新</span></div>
+      ${items}
+    </div>`;
+}
+function mockTasksHtml(){
+  return TASKS.map(t=>{
+    const done=S.doneTasks.includes(t.id); const rw=t.rw; const chips=[];
+    if(rw.energy)chips.push(`⚡+${rw.energy}`); if(rw.xp)chips.push(`✨+${rw.xp}`); if(rw.coin)chips.push(`💰+${rw.coin}`);
+    if(rw.mon){const tpl=MON_POOL.find(m=>m.key===rw.mon);chips.push(`${tpl.s}${tpl.n}`);}
+    if(rw.ing)chips.push(Object.entries(rw.ing).map(([k,v])=>`${ING[k].e}+${v}`).join(' '));
+    return `<div class="card task proj-${t.proj}" style="${done?'opacity:.55':''}">
+      <div class="row"><span class="pill">${t.proj}</span><div class="grow" style="font-weight:700;font-size:13.5px">${t.t}</div></div>
+      <div class="reward">${chips.map(c=>`<span class="rw">${c}</span>`).join('')}</div>
+      <div style="margin-top:9px">${done?`<span class="pill">✅ 已完成</span>`:`<button class="btn green" onclick="completeTask(${t.id})">✅ 标记完成（演示）</button>`}</div>
+    </div>`;
+  }).join('');
+}
+function completeTask(id){
+  if(S.doneTasks.includes(id)) return;
+  const t=TASKS.find(x=>x.id===id); const rw=t.rw;
+  S.doneTasks.push(id);
+  if(rw.energy) S.energy+=rw.energy;
+  if(rw.xp) addXp(rw.xp);
+  if(rw.coin) S.coin+=rw.coin;
+  if(rw.ing) Object.entries(rw.ing).forEach(([k,v])=>S.ing[k]=(S.ing[k]||0)+v);
+  let monMsg='';
+  if(rw.mon){ const m=giveMonster(rw.mon,true); const tpl=MON_POOL.find(x=>x.key===rw.mon); monMsg=`<div style="text-align:center;margin:6px 0;font-size:42px">${tpl.s}</div><div style="text-align:center">收服了 <b>${tpl.n}</b>（${tpl.rar}）！</div>`; }
+  if(rw.legend){
+    modal(`<h3>🏆 传说成就达成</h3>
+      <div style="text-align:center;font-size:50px">🦄📄</div>
+      <div style="text-align:center;font-weight:800;font-size:16px;margin:6px 0">递交 Nature Physics！</div>
+      ${monMsg}
+      <div style="text-align:center;color:var(--muted);font-size:13px;margin:8px 0 14px">+${rw.energy}⚡ +${rw.xp}xp，解锁传说伙伴。</div>
+      <button class="btn green" style="width:100%" onclick="closeModal()">名留青史</button>`);
+  } else if(monMsg){
+    modal(`<h3>✅ 任务完成</h3>${monMsg}
+      <div style="text-align:center;color:var(--muted);font-size:13px;margin:8px 0 14px">+${rw.energy||0}⚡ +${rw.xp||0}xp</div>
+      <button class="btn green" style="width:100%" onclick="closeModal()">收下</button>`);
+  } else {
+    toast(`✅ 完成「${t.t.slice(0,10)}…」 领取奖励！`);
+  }
+  checkAch(); renderTasks(); renderTopbar();
+}
+
+// ============================ 成就 ============================
+const ACHS = [
+  {id:'firstHarvest', e:'🌾', t:'初次收获', d:'收获第一份材料', chk:s=>ING_KEYS.some(k=>s.ing[k]>4)},
+  {id:'cook1', e:'🍳', t:'下厨房', d:'第一次烹饪', chk:s=>s.cookedCount>=1},
+  {id:'tower1', e:'🏰', t:'开张大吉', d:'解锁第一个菜品塔', chk:s=>s.unlockedTowers.length>=1},
+  {id:'mon3', e:'👾', t:'怪兽训练家', d:'收集 3 只怪兽', chk:s=>s.monsters.length>=3},
+  {id:'plot4', e:'🚜', t:'扩张农场', d:'开垦第 4 块地', chk:s=>s.plots.filter(p=>p.unlocked).length>=4},
+  {id:'task3', e:'📋', t:'高效科研', d:'完成 3 个看板任务', chk:s=>s.doneTasks.length>=3},
+  {id:'legend', e:'👑', t:'登上 Nature', d:'递交 Nature Physics', chk:s=>s.doneTasks.includes(6)},
+  {id:'rich', e:'💰', t:'小有积蓄', d:'金币达到 500', chk:s=>s.coin>=500},
+];
+function checkAch(){
+  let newly=false;
+  ACHS.forEach(a=>{ if(!S.ach[a.id] && a.chk(S)){ S.ach[a.id]=true; newly=true; toast(`🏆 成就解锁：${a.t}`); } });
+  if(newly && curTab==='ach') renderAch();
+}
+function renderAch(){
+  const got=Object.keys(S.ach).length;
+  const items=ACHS.map(a=>{
+    const on=S.ach[a.id];
+    return `<div class="card ach ${on?'':'locked'}">
+      <div class="abadge">${a.e}</div>
+      <div class="grow"><div class="at">${a.t} ${on?'✅':'🔒'}</div><div class="ad">${a.d}</div></div>
+    </div>`;
+  }).join('');
+  document.getElementById('app').innerHTML = `
+    <div class="screen">
+      <div class="screen-title">🏆 成就（${got}/${ACHS.length}）</div>
+      <div class="screen-sub">长期目标的高光时刻 —— 把「递交 Nature Physics」这种大事做成传说级里程碑。</div>
+      ${items}
+    </div>`;
+}
+
+// ============================ 导航 / 启动 ============================
+function switchTab(name){
+  curTab=name;
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+  ({farm:renderFarm, kitchen:renderKitchen, monsters:renderMonsters, restaurant:renderRestaurant, tasks:renderTasks, ach:renderAch}[name])();
+}
+document.getElementById('tabbar').addEventListener('click', e=>{
+  const b=e.target.closest('.tab'); if(b) switchTab(b.dataset.tab);
+});
+
+// modal helpers
+function modal(html){ document.getElementById('modalRoot').innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal">${html}</div></div>`; }
+function closeModal(){ document.getElementById('modalRoot').innerHTML=''; }
+
+// ============================ 看板只读接入 ============================
+const KANBAN = { data:null, lastSync:0, GIST_FALLBACK:'337496bdc9d3c0c145fb756648dbf283' };
+function kanbanToken(){ try{ return JSON.parse(localStorage.getItem('kanban-sync-settings-v1')||'null'); }catch(e){ return null; } }
+async function fetchKanban(){
+  const s=kanbanToken();
+  const gistId=(s&&s.gistId)||KANBAN.GIST_FALLBACK;
+  const token=s&&s.token;
+  if(!token) return null;                         // 同源未登录看板→无 token，仅离线演示
+  const res=await fetch('https://api.github.com/gists/'+gistId,{headers:{Authorization:'token '+token,Accept:'application/vnd.github+json'}});
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  const g=await res.json();
+  return JSON.parse(g.files['kanban-data.json'].content);   // 只 GET，从不 PATCH（只读）
+}
+function upcomingReminders(rems){
+  const today=new Date(); today.setHours(0,0,0,0); const out=[];
+  (rems||[]).forEach(r=>{
+    if(r.recurrence==='once' && r.date){
+      const d=new Date(r.date+'T00:00:00'); const days=Math.round((d-today)/864e5);
+      if(days>=0 && days<=10) out.push({title:r.title,days,cat:r.category,time:r.time});
+    }
+  });
+  out.sort((a,b)=>a.days-b.days); return out;
+}
+async function syncKanban(initial){
+  let d=null;
+  try{ d=await fetchKanban(); }catch(e){ if(initial) toast('看板未连接：'+e.message); }
+  if(!d){ if(curTab==='tasks') renderTasks(); return; }
+  KANBAN.data=d; KANBAN.lastSync=Date.now();
+  PROJ_COUNTS={};
+  d.tasks.forEach(t=>{ if(t.status==='inprogress') PROJ_COUNTS[t.project]=(PROJ_COUNTS[t.project]||0)+1; });
+  PROJ_MULT = 1 + 0.08*Object.values(PROJ_COUNTS).reduce((a,b)=>a+b,0);
+  EVENTS = upcomingReminders(d.reminders);
+  if(!S.syncedOnce){
+    // 首次连接：把当前已完成的任务设为基线（不补发历史奖励）
+    d.tasks.forEach(t=>{ if(t.status==='done' && !S.rewarded.includes(t.id)) S.rewarded.push(t.id); });
+    S.syncedOnce=true;
+  } else {
+    d.tasks.forEach(t=>{ if(t.status==='done' && !S.rewarded.includes(t.id)){ S.rewarded.push(t.id); grantTaskReward(t); } });
+  }
+  saveGame(); renderTopbar();
+  if(curTab==='tasks') renderTasks();
+  if(curTab==='farm') renderFarm();
+  if(curTab==='restaurant') renderRestaurant();
+}
+
+// ============================ 存档 + 离线挂机 ============================
+const SAVE_KEY='farm-game-save-v1';
+function saveGame(){ try{ S.lastTick=Date.now(); localStorage.setItem(SAVE_KEY, JSON.stringify({S,monSeq})); }catch(e){} }
+function loadGame(){
+  let raw; try{ raw=localStorage.getItem(SAVE_KEY); }catch(e){}
+  if(!raw) return false;
+  try{ const o=JSON.parse(raw); if(!o.S||!Array.isArray(o.S.plots)) return false;
+    S=o.S; monSeq=o.monSeq||1;
+    if(!S.rewarded) S.rewarded=[]; if(typeof S.syncedOnce!=='boolean') S.syncedOnce=false;
+    return true;
+  }catch(e){ return false; }
+}
+function applyOffline(){
+  const now=Date.now(); let dt=(now-(S.lastTick||now))/1000;
+  if(dt<60) return null; dt=Math.min(dt,8*3600);
+  const before={}; ING_KEYS.forEach(k=>before[k]=S.ing[k]||0); const coin0=S.coin;
+  tick(dt);
+  const gained={}; ING_KEYS.forEach(k=>{ const g=(S.ing[k]||0)-before[k]; if(g>0) gained[k]=g; });
+  return {gained, coin:Math.floor(S.coin-coin0), mins:Math.round(dt/60)};
+}
+
+// ============================ 启动 ============================
+function boot(){
+  const had=loadGame();
+  if(!had){ giveMonster('hamster',true); giveMonster('penguin',true); S.monsters[0].job='farm'; S.plots[0].worker=S.monsters[0].id; }
+  const off = had?applyOffline():null;
+  S.lastTick=Date.now();
+  renderTopbar(); renderFarm();
+  setTimeout(()=>welcomeModal(off,!had),300);
+  syncKanban(true);
+}
+function welcomeModal(off,fresh){
+  let body;
+  if(fresh){
+    body=`<div class="banner" style="margin:6px 0 12px">🎀 欢迎来到任务农场！</div>
+      <div style="font-size:12.5px;color:var(--muted);line-height:1.6;margin-bottom:14px">
+      🌱种田屯材料、🍳手动配菜谱解锁塔、👾收怪兽派工/编队打怪、🏰餐厅塔防招待怪兽顾客、📋在看板完成任务自动领奖、🏆解锁成就。<br><br>
+      进度自动存档，离线也在挂机产出。</div>`;
+  } else {
+    const list=off&&Object.keys(off.gained).length?Object.entries(off.gained).map(([k,v])=>`${ING[k].e}${ING[k].n}×${v}`).join('、'):'一些材料';
+    body=`<div class="banner offline" style="margin:6px 0 12px">😴 你离开的 ${off?off.mins:0} 分钟里，农场也在产出：<br><b>${list}</b>${off&&off.coin>0?`，还赚了 ${off.coin}💰`:''}，已入库。</div>`;
+  }
+  modal(`<h3>👋 任务农场</h3>${body}<button class="btn green" style="width:100%" onclick="closeModal()">开始玩 →</button>`);
+}
+
+// 自动存档 + 周期同步看板
+setInterval(saveGame, 20000);
+setInterval(()=>syncKanban(false), 60000);
+document.addEventListener('visibilitychange',()=>{ if(document.hidden) saveGame(); else syncKanban(false); });
+window.addEventListener('beforeunload', saveGame);
+
+// Service Worker（离线缓存；file:// 下会静默失败，无妨）
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('farm-sw.js').catch(()=>{}); }
+
+boot();
+</script>
+</body>
+</html>
