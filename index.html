@@ -726,6 +726,14 @@ function render(){
       if(pa !== pb) return pa - pb;
       return (a.deadline || 'zzzz').localeCompare(b.deadline || 'zzzz');
     });
+    else ts.sort((a,b) => {
+      // most recently completed first; fall back to deadline, then id, for
+      // older tasks that predate completedAt timestamps
+      const ka = a.completedAt || a.deadline || '';
+      const kb = b.completedAt || b.deadline || '';
+      if(ka !== kb) return kb.localeCompare(ka);
+      return b.id - a.id;
+    });
     document.getElementById('cnt-' + s).textContent = ts.length;
     const tabCnt = document.getElementById('tab-cnt-' + s);
     if(tabCnt) tabCnt.textContent = ts.length;
@@ -1034,7 +1042,12 @@ function toggleSub(tid, i){
 }
 function mv(tid, s){
   const t = tasks.find(x => x.id === tid);
-  if(t){ t.status = s; persist(); }
+  if(t){
+    if(s === 'done') t.completedAt = new Date().toISOString();
+    else delete t.completedAt;  // restarting / moving out of done clears the stamp
+    t.status = s;
+    persist();
+  }
 }
 function del(tid){
   if(confirm('确认删除此任务？')){
@@ -1078,8 +1091,15 @@ function saveTask(){
   };
   if(editId !== null){
     const i = tasks.findIndex(x => x.id === editId);
-    if(i >= 0) tasks[i] = {...tasks[i], ...d};
+    if(i >= 0){
+      const merged = {...tasks[i], ...d};
+      // keep completedAt consistent if status changed via the form
+      if(merged.status === 'done' && !merged.completedAt) merged.completedAt = new Date().toISOString();
+      if(merged.status !== 'done') delete merged.completedAt;
+      tasks[i] = merged;
+    }
   } else {
+    if(d.status === 'done') d.completedAt = new Date().toISOString();
     tasks.push({id: nextId++, ...d});
   }
   closeModal();
