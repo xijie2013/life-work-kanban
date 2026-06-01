@@ -159,6 +159,8 @@
    收服怪兽派工&编队 → 餐厅塔防经营。看板任务完成给高级奖励。
    ========================================================================= */
 
+const GAME_VERSION = 'v0.3 · 2026-06-01（云存档 + 设置）';
+
 // ---------- 内容定义 ----------
 const ING = {
   wheat:{e:'🌾',n:'小麦'}, tomato:{e:'🍅',n:'番茄'}, chili:{e:'🌶️',n:'辣椒'},
@@ -313,7 +315,36 @@ function renderTopbar(){
     <div class="lvl-wrap">
       <div class="res" style="font-size:12px">👨‍🔬 Lv.${S.level}<small>${Math.floor(S.xp)}/${need}</small></div>
       <div class="lvl-bar"><div class="lvl-fill" style="width:${pct}%"></div></div>
-    </div>`;
+    </div>
+    <button onclick="openGameSettings()" title="设置 / 版本" style="border:none;background:#f3e8d6;border-radius:9px;width:34px;height:34px;font-size:17px;cursor:pointer;color:#7a6448;flex:0 0 auto">⚙</button>`;
+}
+function openGameSettings(){
+  const s=kanbanToken();
+  const conn=KANBAN.data?'✅ 已连接（只读）':((s&&s.token)?'⏳ 连接中…':'🔌 未连接（需与看板同源部署）');
+  const cloud=SAVE_GIST_ID?'☁️ 云端存档已启用':'💾 仅本地存档（连上看板后自动启用云端）';
+  modal(`<h3>⚙ 设置 <button class="x" onclick="closeModal()">×</button></h3>
+    <div style="font-size:13px;line-height:2">
+      <div><b>版本</b>：${GAME_VERSION}</div>
+      <div><b>看板</b>：${conn}</div>
+      <div><b>存档</b>：${cloud}</div>
+      <div><b>等级</b> Lv.${S.level}　·　<b>金币</b> ${fmt(S.coin)}　·　<b>怪兽</b> ${S.monsters.length} 只</div>
+    </div>
+    <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">
+      <button class="btn blue" onclick="closeModal();syncKanban(true);toast('正在重新同步看板…')">🔄 重新同步看板</button>
+      <button class="btn ghost" onclick="forceUpdate()">🧹 清缓存并重载（获取最新版本）</button>
+      <button class="btn ghost" style="color:#c0392b" onclick="resetSave()">♻️ 重置本地存档</button>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:10px">部署新版本后若版本号没变，点「清缓存并重载」即可强制拿到最新。</div>`);
+}
+async function forceUpdate(){
+  try{ if('serviceWorker' in navigator){ const rs=await navigator.serviceWorker.getRegistrations(); for(const r of rs) await r.unregister(); } }catch(e){}
+  try{ if(window.caches){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); } }catch(e){}
+  location.reload(true);
+}
+function resetSave(){
+  if(!confirm('确定重置本地存档吗？\n（云端存档不动；下次同步可能会把云端进度拉回来）')) return;
+  try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
+  location.reload();
 }
 
 // ============================ 农场 ============================
