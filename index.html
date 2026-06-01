@@ -206,9 +206,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <button class="btn btn-white" onclick="openAdd()" title="添加任务">＋</button>
     <button class="btn btn-white" onclick="openReminders()" title="提醒事项">📅</button>
     <button class="btn btn-white" onclick="openSettings()" title="云同步设置">⚙</button>
-    <button class="btn btn-white" onclick="exportData()" title="导出 JSON 备份">⬇</button>
-    <input type="file" id="import-file" accept=".json,application/json" style="display:none" onchange="importData(this)">
-    <button class="btn btn-white" onclick="document.getElementById('import-file').click()" title="从 JSON 文件导入并覆盖云端">⬆</button>
   </div>
 </div>
 
@@ -1128,47 +1125,6 @@ function addSubFromInput(){
   renderSubEditor();
 }
 function rmSub(i){ tmpSubs.splice(i, 1); renderSubEditor(); }
-
-// ---------- export / import ----------
-function exportData(){
-  const blob = new Blob([JSON.stringify({tasks, nextId, version:1, exportedAt:new Date().toISOString()}, null, 2)], {type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  const ts = new Date().toISOString().slice(0,10);
-  a.href = url; a.download = `kanban-backup-${ts}.json`;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 0);
-  toast('已导出本地数据', 'success');
-}
-function importData(input){
-  const file = input.files && input.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = async e => {
-    try{
-      const data = JSON.parse(e.target.result);
-      if(!data || !Array.isArray(data.tasks)) throw new Error('JSON 中没有有效的 tasks 数组');
-      if(!confirm(`导入将用文件中的数据【覆盖云端 + 本地】（${data.tasks.length} 个任务）。\n\n这会同时改变其他设备上的看板。确定继续？`)){
-        input.value = ''; return;
-      }
-      tasks = data.tasks;
-      nextId = Number.isFinite(data.nextId) ? data.nextId : (tasks.reduce((m,t)=>Math.max(m,t.id||0),0)+1);
-      input.value = '';
-      saveCache();
-      render();
-      try{
-        await flushSaveImmediately();
-        toast('导入完成，已同步到云端', 'success');
-      }catch(err){
-        toast('导入到本地完成，但同步到云端失败：' + err.message, 'error');
-      }
-    }catch(err){
-      alert('导入失败：' + err.message);
-      input.value = '';
-    }
-  };
-  reader.readAsText(file);
-}
 
 // ---------- listeners ----------
 document.getElementById('new-sub-inp').addEventListener('keydown', e => {
