@@ -1,7 +1,7 @@
 /* 任务农场 Service Worker — 离线缓存。
    首次联网时缓存页面与素材；之后离线也能秒开。
    GitHub API（看板数据）永不缓存，始终读最新。 */
-const CACHE = 'farm-cache-v13';
+const CACHE = 'farm-cache-v14';
 const ASSETS = [
   './kanban-farm-idle.html',
   './farm-manifest.json',

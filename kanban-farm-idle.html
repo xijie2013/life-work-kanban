@@ -19,7 +19,7 @@
   html{background:#e9d8bf;}
   body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
     background:linear-gradient(160deg,#fff7ec,#ffeed8);color:var(--ink);
-    width:420px;max-width:100%;margin:0 auto;height:100vh;height:100dvh;
+    width:360px;max-width:100%;margin:0 auto;height:100vh;height:100dvh;
     display:flex;flex-direction:column;overflow:hidden;
     box-shadow:0 0 36px rgba(110,75,30,.18);}
   #app{flex:1 1 auto;overflow-y:auto;min-height:0;-webkit-overflow-scrolling:touch;padding-bottom:calc(60px + env(safe-area-inset-bottom,0px));}
@@ -39,7 +39,9 @@
   .lvl-fill{height:100%;background:linear-gradient(90deg,#f0c14b,#e58a3c);width:0%;transition:width .3s;}
 
   /* —— 图片化 HUD —— */
-  .hud{display:flex;align-items:center;gap:6px;width:100%;}
+  .hud{display:flex;flex-direction:column;gap:6px;width:100%;}
+  .hud-row{display:flex;align-items:center;gap:6px;}
+  .hud-row2{justify-content:flex-end;}
   .stat-pill{display:flex;align-items:center;gap:4px;background:linear-gradient(#fffdf8,#fbf2e2);border:1px solid #ecdcc4;border-radius:20px;padding:3px 9px 3px 3px;box-shadow:0 1px 3px rgba(150,110,50,.12);}
   .stat-pill .pic{width:23px;height:23px;flex:0 0 auto;display:block;}
   .stat-pill .val{font-weight:800;font-size:13.5px;color:#5b4632;font-variant-numeric:tabular-nums;}
@@ -60,7 +62,7 @@
   .hud-badge{position:absolute;top:-5px;right:-5px;background:#d2603a;color:#fff;font-size:9px;font-weight:800;min-width:15px;height:15px;line-height:15px;border-radius:8px;padding:0 3px;display:none;box-shadow:0 1px 3px rgba(0,0,0,.25);}
 
   /* tabs */
-  .tabbar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:420px;max-width:100%;padding-bottom:env(safe-area-inset-bottom,0px);display:flex;
+  .tabbar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:360px;max-width:100%;padding-bottom:env(safe-area-inset-bottom,0px);display:flex;
     background:var(--panel);border-top:1px solid var(--line);z-index:40;box-shadow:0 -2px 10px rgba(120,80,30,.06);}
   .tab{flex:1;border:none;background:none;padding:8px 2px 7px;font-size:11px;color:var(--muted);
     display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;font-weight:600;}
@@ -202,7 +204,7 @@
    收服怪兽派工&编队 → 餐厅塔防经营。看板任务完成给高级奖励。
    ========================================================================= */
 
-const GAME_VERSION = 'v1.3 · 2026-06-01（修复手机底栏不显示）';
+const GAME_VERSION = 'v1.4 · 2026-06-01（测试模式·抬头两行·S24宽度360）';
 
 // ---------- 内容定义 ----------
 const ING = {
@@ -379,15 +381,19 @@ function renderTopbar(){
   if(_hud.built) return;                       // 只构建一次，数值由 hudTick 平滑滚动更新
   document.getElementById('topbar').innerHTML = `
     <div class="hud">
-      <div class="stat-pill" id="pill-coin" title="金币">${SVG_COIN}<span class="val" id="v-coin">0</span></div>
-      <div class="stat-pill energy" id="pill-energy" title="扭蛋·点击查看" onclick="energyInfo()">${gachaSVG(23)}<span class="val" id="v-energy">0</span></div>
-      <div class="lvl-box">
-        <div class="avatar">${SVG_SPROUT}<span class="lvl-badge" id="v-lvl">Lv1</span></div>
-        <div class="xp"><div class="xp-fill" id="xp-fill"></div><span class="xp-txt" id="v-xp"></span></div>
+      <div class="hud-row">
+        <div class="stat-pill" id="pill-coin" title="金币">${SVG_COIN}<span class="val" id="v-coin">0</span></div>
+        <div class="stat-pill energy" id="pill-energy" title="扭蛋·点击查看" onclick="energyInfo()">${gachaSVG(23)}<span class="val" id="v-energy">0</span></div>
+        <div class="lvl-box">
+          <div class="avatar">${SVG_SPROUT}<span class="lvl-badge" id="v-lvl">Lv1</span></div>
+          <div class="xp"><div class="xp-fill" id="xp-fill"></div><span class="xp-txt" id="v-xp"></span></div>
+        </div>
       </div>
-      <button class="gear" onclick="openTasks()" title="任务" style="position:relative">📋<span class="hud-badge" id="task-badge"></span></button>
-      <button class="gear" onclick="openAchievements()" title="成就">🏆</button>
-      <button class="gear" onclick="openGameSettings()" title="设置 / 版本">⚙</button>
+      <div class="hud-row hud-row2">
+        <button class="gear" onclick="openTasks()" title="任务" style="position:relative">📋<span class="hud-badge" id="task-badge"></span></button>
+        <button class="gear" onclick="openAchievements()" title="成就">🏆</button>
+        <button class="gear" onclick="openGameSettings()" title="设置 / 版本">⚙</button>
+      </div>
     </div>`;
   _hud.coin=S.coin; _hud.energy=S.energy; _hud.mat=ING_KEYS.reduce((a,k)=>a+(S.ing[k]||0),0); _hud.xp=S.xp;
   _hud.built=true;
@@ -429,8 +435,19 @@ function openGameSettings(){
     <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">
       <button class="btn blue" onclick="closeModal();syncKanban(true);toast('正在重新同步看板…')">🔄 重新同步看板</button>
       <button class="btn ghost" onclick="forceUpdate()">🧹 清缓存并重载（获取最新版本）</button>
+      <button class="btn ${S.testMode?'green':'ghost'}" onclick="toggleTest()">🧪 测试模式：${S.testMode?'开':'关'}</button>
       <button class="btn ghost" style="color:#c0392b" onclick="resetSave()">♻️ 重置本地存档</button>
     </div>
+    ${S.testMode?`<div style="margin-top:12px;border-top:1px dashed var(--line);padding-top:10px">
+      <div style="font-weight:800;font-size:13px;margin-bottom:6px">🧪 测试工具</div>
+      <div class="row" style="flex-wrap:wrap;gap:6px">
+        <button class="btn sm" onclick="cheat('coin')">+1000💰</button>
+        <button class="btn sm" onclick="cheat('gacha')">+10 扭蛋</button>
+        <button class="btn sm" onclick="cheat('mat')">+50 材料</button>
+        <button class="btn sm ghost" onclick="cheat('reset')">重置任务/领取</button>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px">测试模式下断开看板、改用可手动「完成」的模拟任务（在 📋 里），方便测试领奖、产出与抽卡。</div>
+    </div>`:''}
     <div style="font-size:11px;color:var(--muted);margin-top:10px">部署新版本后若版本号没变，点「清缓存并重载」即可强制拿到最新。</div>`);
 }
 async function forceUpdate(){
@@ -442,6 +459,20 @@ function resetSave(){
   if(!confirm('确定重置本地存档吗？\n（云端存档不动；下次同步可能会把云端进度拉回来）')) return;
   try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
   location.reload();
+}
+function toggleTest(){
+  S.testMode=!S.testMode; saveGame();
+  if(S.testMode){ KANBAN.data=null; toast('已开启测试模式'); }
+  else { toast('已关闭测试模式'); syncKanban(true); }
+  if(curTab==='farm') renderFarm();
+  closeModal(); openGameSettings();
+}
+function cheat(type){
+  if(type==='coin') S.coin+=1000;
+  else if(type==='gacha') S.energy+=10;
+  else if(type==='mat') ING_KEYS.forEach(k=>S.ing[k]=(S.ing[k]||0)+50);
+  else if(type==='reset'){ S.rewarded=[]; S.doneTasks=[]; S.syncedOnce=false; toast('已重置任务与领取记录'); }
+  saveGame(); if(curTab==='farm') renderFarm(); openGameSettings();
 }
 
 // ============================ 农场 ============================
@@ -1056,6 +1087,7 @@ function closeModal(){ document.getElementById('modalRoot').innerHTML=''; }
 const KANBAN = { data:null, lastSync:0, GIST_FALLBACK:'337496bdc9d3c0c145fb756648dbf283' };
 function kanbanToken(){ try{ return JSON.parse(localStorage.getItem('kanban-sync-settings-v1')||'null'); }catch(e){ return null; } }
 async function fetchKanban(){
+  if(S.testMode) return null;             // 测试模式：断开看板，改用可手动完成的模拟任务
   const s=kanbanToken();
   const gistId=(s&&s.gistId)||KANBAN.GIST_FALLBACK;
   const token=s&&s.token;
