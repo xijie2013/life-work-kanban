@@ -256,6 +256,7 @@ function giveMonster(key, silent){
 
 // ---------- 工具 ----------
 function fmt(n){ n=Math.floor(n); if(n>=1e6)return (n/1e6).toFixed(1)+'M'; if(n>=1e3)return (n/1e3).toFixed(1)+'k'; return ''+n; }
+function escapeHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function toast(msg){
   const t=document.getElementById('toast');
   const d=document.createElement('div'); d.className='toast'; d.textContent=msg;
@@ -965,17 +966,68 @@ async function syncKanban(initial){
   if(curTab==='restaurant') renderRestaurant();
 }
 
-// ============================ 存档 + 离线挂机 ============================
+// ============================ 存档（本地 + 云端；云端用独立 gist，绝不碰看板） ============================
 const SAVE_KEY='farm-game-save-v1';
-function saveGame(){ try{ S.lastTick=Date.now(); localStorage.setItem(SAVE_KEY, JSON.stringify({S,monSeq})); }catch(e){} }
+const SAVE_GIST_KEY='farm-save-gist-id';
+let localSavedAt=0, SAVE_GIST_ID=null, lastCloudSave=0, cloudTimer=null;
+
+function saveGame(){
+  try{ S.lastTick=Date.now(); localSavedAt=Date.now();
+    localStorage.setItem(SAVE_KEY, JSON.stringify({S,monSeq,savedAt:localSavedAt})); }catch(e){}
+  cloudSave(false);
+}
 function loadGame(){
   let raw; try{ raw=localStorage.getItem(SAVE_KEY); }catch(e){}
   if(!raw) return false;
   try{ const o=JSON.parse(raw); if(!o.S||!Array.isArray(o.S.plots)) return false;
-    S=o.S; monSeq=o.monSeq||1;
+    S=o.S; monSeq=o.monSeq||1; localSavedAt=o.savedAt||0;
     if(!S.rewarded) S.rewarded=[]; if(typeof S.syncedOnce!=='boolean') S.syncedOnce=false;
     return true;
   }catch(e){ return false; }
+}
+// —— 云端存档：独立私有 gist（文件 farm-save.json），与看板 gist 完全分开，只写这一个 ——
+async function ensureSaveGist(token){
+  try{ const cached=localStorage.getItem(SAVE_GIST_KEY); if(cached) return cached; }catch(e){}
+  try{ // 在你已有 gist 里按文件名找存档（实现跨设备同步）
+    const r=await fetch('https://api.github.com/gists?per_page=100',{headers:{Authorization:'token '+token,Accept:'application/vnd.github+json'}});
+    if(r.ok){ const list=await r.json(); const hit=list.find(g=>g.files&&g.files['farm-save.json']);
+      if(hit){ try{localStorage.setItem(SAVE_GIST_KEY,hit.id);}catch(e){} return hit.id; } }
+  }catch(e){}
+  try{ // 没有就新建一个私有 gist（绝不动看板 gist）
+    const cr=await fetch('https://api.github.com/gists',{method:'POST',headers:{Authorization:'token '+token,'Content-Type':'application/json',Accept:'application/vnd.github+json'},
+      body:JSON.stringify({description:'任务农场存档（自动创建，可删；与看板无关）',public:false,files:{'farm-save.json':{content:JSON.stringify({S,monSeq,savedAt:Date.now()})}}})});
+    if(cr.ok){ const g=await cr.json(); try{localStorage.setItem(SAVE_GIST_KEY,g.id);}catch(e){} return g.id; }
+  }catch(e){}
+  return null;
+}
+async function loadCloud(token,id){
+  try{
+    const r=await fetch('https://api.github.com/gists/'+id,{headers:{Authorization:'token '+token,Accept:'application/vnd.github+json'}});
+    if(!r.ok) return null; const g=await r.json(); const f=g.files&&g.files['farm-save.json'];
+    if(!f||!f.content) return null; return JSON.parse(f.content);
+  }catch(e){ return null; }
+}
+function cloudSave(force){
+  const s=kanbanToken(); if(!(s&&s.token&&SAVE_GIST_ID)) return;
+  const now=Date.now();
+  if(!force && now-lastCloudSave<30000){ if(!cloudTimer) cloudTimer=setTimeout(()=>{cloudTimer=null;cloudSave(true);},30000); return; }
+  if(cloudTimer){ clearTimeout(cloudTimer); cloudTimer=null; }
+  lastCloudSave=now;
+  fetch('https://api.github.com/gists/'+SAVE_GIST_ID,{method:'PATCH',headers:{Authorization:'token '+s.token,'Content-Type':'application/json',Accept:'application/vnd.github+json'},
+    body:JSON.stringify({files:{'farm-save.json':{content:JSON.stringify({S,monSeq,savedAt:Date.now()})}}})}).catch(()=>{});
+}
+async function cloudInitAndMerge(){
+  const s=kanbanToken(); if(!(s&&s.token)) return false;   // 无 token（如本地 file://）→ 仅本地存档
+  SAVE_GIST_ID=await ensureSaveGist(s.token);
+  if(!SAVE_GIST_ID) return false;
+  const cloud=await loadCloud(s.token,SAVE_GIST_ID);
+  if(cloud&&cloud.S&&Array.isArray(cloud.S.plots)&&(cloud.savedAt||0)>localSavedAt){
+    S=cloud.S; monSeq=cloud.monSeq||monSeq; localSavedAt=cloud.savedAt;
+    if(!S.rewarded)S.rewarded=[]; if(typeof S.syncedOnce!=='boolean')S.syncedOnce=false;
+    return true;                       // 采用了更新的云端存档
+  }
+  if(!cloud||!cloud.S){ cloudSave(true); }  // 云端还没有 → 把本地推上去
+  return false;
 }
 function applyOffline(){
   const now=Date.now(); let dt=(now-(S.lastTick||now))/1000;
@@ -987,13 +1039,15 @@ function applyOffline(){
 }
 
 // ============================ 启动 ============================
-function boot(){
+async function boot(){
   const had=loadGame();
   if(!had){ giveMonster('hamster',true); giveMonster('penguin',true); S.monsters[0].job='farm'; S.plots[0].worker=S.monsters[0].id; }
-  const off = had?applyOffline():null;
+  renderTopbar(); renderFarm();                 // 先用本地存档秒开
+  const adopted = await cloudInitAndMerge();     // 云端有更新的存档则覆盖
+  const off = (had||adopted)?applyOffline():null;
   S.lastTick=Date.now();
-  renderTopbar(); renderFarm();
-  setTimeout(()=>welcomeModal(off,!had),300);
+  if(adopted){ renderTopbar(); if(curTab==='farm') renderFarm(); }
+  setTimeout(()=>welcomeModal(off, !had && !adopted),300);
   syncKanban(true);
 }
 function welcomeModal(off,fresh){
@@ -1013,8 +1067,8 @@ function welcomeModal(off,fresh){
 // 自动存档 + 周期同步看板
 setInterval(saveGame, 20000);
 setInterval(()=>syncKanban(false), 60000);
-document.addEventListener('visibilitychange',()=>{ if(document.hidden) saveGame(); else syncKanban(false); });
-window.addEventListener('beforeunload', saveGame);
+document.addEventListener('visibilitychange',()=>{ if(document.hidden){ saveGame(); cloudSave(true); } else syncKanban(false); });
+window.addEventListener('beforeunload', ()=>{ saveGame(); cloudSave(true); });
 
 // Service Worker（离线缓存；file:// 下会静默失败，无妨）
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('farm-sw.js').catch(()=>{}); }
