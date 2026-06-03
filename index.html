@@ -723,7 +723,16 @@ function dlInfo(dl){
   return {txt:'📅 ' + dl, cls:''};
 }
 function projClass(p){
-  return {'NP 投稿':'proj-np','ZF Study':'proj-zf','LH Model':'proj-lh','Seminar':'proj-seminar','生活':'proj-life'}[p] || 'proj-default';
+  return {'NP 投稿':'proj-np','IR paper':'proj-np','ZF Study':'proj-zf','LH Model':'proj-lh','Seminar':'proj-seminar','生活':'proj-life'}[p] || 'proj-default';
+}
+// Stable dot color for the stats bar. Known projects get fixed colors;
+// any new project gets a stable color picked from a palette by name hash.
+const PROJ_DOT = {'NP 投稿':'#f6ad55','IR paper':'#f6ad55','ZF Study':'#38bdf8','LH Model':'#f9a8d4','Seminar':'#c4b5fd','生活':'#34d399'};
+const PROJ_PALETTE = ['#fb923c','#22d3ee','#a3e635','#f472b6','#60a5fa','#facc15','#2dd4bf','#c084fc'];
+function projDot(p){
+  if(PROJ_DOT[p]) return PROJ_DOT[p];
+  let h = 0; for(const ch of String(p||'')) h = (h*31 + ch.charCodeAt(0)) >>> 0;
+  return PROJ_PALETTE[h % PROJ_PALETTE.length];
 }
 function escapeHtml(s){
   return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -799,15 +808,24 @@ function renderCard(t){
 }
 function renderStats(){
   const urg = tasks.filter(t => t.status !== 'done' && priority(t.deadline) === 'urgent').length;
+  // Build the project list dynamically from the board, in creation order
+  // (lowest task id first) so renames and new projects stay in sync.
+  const order = [], firstId = {};
+  for(const t of tasks){
+    const p = t.project || '其他';
+    if(!(p in firstId)){ firstId[p] = t.id; order.push(p); }
+    else firstId[p] = Math.min(firstId[p], t.id);
+  }
+  order.sort((a,b) => firstId[a] - firstId[b]);
   function prog(proj){
-    const d = tasks.filter(t => t.project === proj);
+    const d = tasks.filter(t => (t.project || '其他') === proj);
     return `${d.filter(t => t.status === 'done').length}/${d.length}`;
   }
+  const projStats = order.map(p =>
+    `<div class="stat"><div class="dot" style="background:${projDot(p)}"></div>${escapeHtml(p)}：<strong>${prog(p)}</strong></div>`
+  ).join('');
   document.getElementById('statsBar').innerHTML = `
-    <div class="stat"><div class="dot" style="background:#f6ad55"></div>NP 投稿：<strong>${prog('NP 投稿')}</strong></div>
-    <div class="stat"><div class="dot" style="background:#38bdf8"></div>ZF Study：<strong>${prog('ZF Study')}</strong></div>
-    <div class="stat"><div class="dot" style="background:#f9a8d4"></div>LH Model：<strong>${prog('LH Model')}</strong></div>
-    <div class="stat"><div class="dot" style="background:#c4b5fd"></div>Seminar：<strong>${prog('Seminar')}</strong></div>
+    ${projStats}
     ${urg ? `<div class="stat" style="color:#e53e3e"><div class="dot" style="background:#fc8181"></div>🔴 紧急：<strong>${urg} 项</strong></div>` : ''}
     ${lastSavedAt ? `<div class="saved-tag">💾 已保存 ${lastSavedAt.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}</div>` : ''}
   `;
