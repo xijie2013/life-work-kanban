@@ -714,6 +714,33 @@ function priority(dl){
 }
 function pLabel(p){ return {urgent:'🔴 紧急',high:'🟠 较高',medium:'🟢 一般',low:'🔵 较低'}[p]; }
 function pOrder(p){ return {urgent:0,high:1,medium:2,low:3}[p]; }
+function pFromOrder(o){ return ['urgent','high','medium','low'][o]; }
+// Dependency-aware priority. Within a project, tasks form a series ordered by
+// id (earlier id = prerequisite / 前置). A successor task must never be more
+// urgent than its prerequisites, so each not-done task inherits the most urgent
+// priority among itself and all later (higher-id) not-done tasks in the same
+// project. Recomputed each render into EFF (taskId -> pOrder).
+let EFF = {};
+function computeEff(){
+  EFF = {};
+  const byProj = {};
+  for(const t of tasks){
+    if(t.status === 'done') continue;
+    (byProj[t.project || ''] = byProj[t.project || ''] || []).push(t);
+  }
+  for(const list of Object.values(byProj)){
+    list.sort((a, b) => a.id - b.id);
+    let best = 3; // least urgent seen so far (walking backward from last task)
+    for(let i = list.length - 1; i >= 0; i--){
+      best = Math.min(best, pOrder(priority(list[i].deadline)));
+      EFF[list[i].id] = best;
+    }
+  }
+}
+function effPriority(t){
+  if(t.status === 'done') return 'low';
+  return EFF[t.id] != null ? pFromOrder(EFF[t.id]) : priority(t.deadline);
+}
 function dlInfo(dl){
   if(!dl) return null;
   const d = Math.ceil((new Date(dl) - new Date(new Date().toDateString())) / 864e5);
@@ -740,11 +767,12 @@ function escapeHtml(s){
 
 function render(){
   if(normalizeBoard()) scheduleSave();
+  computeEff();
   ['todo','inprogress','done'].forEach(s => {
     let ts = tasks.filter(t => t.status === s);
     if(s !== 'done') ts.sort((a,b) => {
-      const pa = pOrder(priority(a.deadline));
-      const pb = pOrder(priority(b.deadline));
+      const pa = pOrder(effPriority(a));
+      const pb = pOrder(effPriority(b));
       if(pa !== pb) return pa - pb;
       return (a.deadline || 'zzzz').localeCompare(b.deadline || 'zzzz');
     });
@@ -770,7 +798,8 @@ function render(){
   renderReminderStrip();
 }
 function renderCard(t){
-  const p = t.status === 'done' ? 'low' : priority(t.deadline);
+  const p = effPriority(t);
+  const escalated = t.status !== 'done' && pOrder(p) < pOrder(priority(t.deadline));
   const dl = t.status === 'done'
     ? (t.deadline ? {txt:'📅 ' + t.deadline, cls:''} : null)
     : dlInfo(t.deadline);
@@ -791,7 +820,7 @@ function renderCard(t){
   return `<div class="card p-${p}" onclick="openEdit(${t.id})">
     <div class="card-top">
       <div class="card-title">${escapeHtml(t.title)}</div>
-      ${t.status !== 'done' ? (isLH ? `<span class="secondary-badge">次优先</span>` : `<span class="pbadge pb-${p}">${pLabel(p)}</span>`) : ''}
+      ${t.status !== 'done' ? (isLH ? `<span class="secondary-badge">次优先</span>` : `<span class="pbadge pb-${p}"${escalated?' title="被后续任务带动升级"':''}>${pLabel(p)}${escalated?' ↑':''}</span>`) : ''}
     </div>
     <div class="card-meta">
       ${t.project ? `<span class="proj-tag ${projClass(t.project)}">${escapeHtml(t.project)}</span>` : ''}
@@ -807,7 +836,7 @@ function renderCard(t){
   </div>`;
 }
 function renderStats(){
-  const urg = tasks.filter(t => t.status !== 'done' && priority(t.deadline) === 'urgent').length;
+  const urg = tasks.filter(t => t.status !== 'done' && effPriority(t) === 'urgent').length;
   // Build the project list dynamically from the board, in creation order
   // (lowest task id first) so renames and new projects stay in sync.
   const order = [], firstId = {};
